@@ -1,28 +1,23 @@
-#include <stdio.h>
+//This line includes all the opencv header files
 #include <opencv2/opencv.hpp>
 
-using namespace cv;
+int main() {
+	//Make a blank image
+	cv::Mat picture = cv::Mat::zeros(100, 100, CV_32FC1);
+	//define a rectangle
+	cv::Rect box(30, 30, 25, 25);
 
-int main(int argc, char** argv )
-{
-    if ( argc != 2 )
-    {
-        printf("usage: DisplayImage.out <Image_Path>\n");
-        return -1;
-    }
+	//draw a white rectangle in the image
+	cv::rectangle(picture, box, cv::Scalar(1.0, 1.0, 1.0));
 
-    Mat image;
-    image = imread( argv[1], 1 );
+	//create the window that can be resized
+	cv::namedWindow("window");
 
-    if ( !image.data )
-    {
-        printf("No image data \n");
-        return -1;
-    }
-    namedWindow("Display Image", WINDOW_AUTOSIZE );
-    imshow("Display Image", image);
+	//show the image in the window
+	cv::imshow("window", picture);
 
-    waitKey(0);
+	//wait until keypress
+	cv::waitKey(0);
 
-    return 0;
+	return 0;
 }
