@@ -17,8 +17,8 @@ cv::Mat medianBackgroundModelling(cv::Mat frame, cv::Mat background, int ksize =
     cv::cvtColor( diff, diff, cv::COLOR_BGR2GRAY);
     //Threshold
     //source, destination, threshold, max value out, threshold type
-    cv::threshold(diff, binary, thresh, 255, cv::ThresholdTypes::THRESH_BINARY);
-
+    cv::threshold(diff, binary, thresh, 1.0, cv::ThresholdTypes::THRESH_BINARY);
+    
     cv::Mat er_element = cv::getStructuringElement( cv::MORPH_RECT,
                          cv::Size( 2*erosion_size + 1, 2*erosion_size+1 ),
                          cv::Point( erosion_size, erosion_size ) );
@@ -30,6 +30,9 @@ cv::Mat medianBackgroundModelling(cv::Mat frame, cv::Mat background, int ksize =
                          cv::Point( dilation_size, dilation_size ) );
     
     cv::dilate(binary, binary, dil_element);
+    
+    //std::cout << binary << std::endl;
+    binary.convertTo(binary, CV_32FC1);
     
     return binary;
 }
@@ -46,6 +49,10 @@ int main() {
         return -1;
     }
     
+    int threshold = 90;
+    cv::namedWindow("Threshold", cv::WINDOW_AUTOSIZE);
+    cv::createTrackbar( "Threshold", "Threshold", &threshold, 255);
+    
     while(1) {
         
         cv::Mat background = cv::imread ("Walk1000.jpg",cv::IMREAD_UNCHANGED);
@@ -60,7 +67,7 @@ int main() {
             break;
         }
         //frame, background, ksize for median filter, threshold, erosion size, dilation size
-        bg_mask = medianBackgroundModelling(frame, background, 3, 90, 1, 1);
+        bg_mask = medianBackgroundModelling(frame, background, 3, threshold, 1, 1);
         cv::imshow("Original video", frame);
         cv::imshow("Background model", bg_mask);
 
