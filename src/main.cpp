@@ -37,6 +37,7 @@ cv::Mat medianBackgroundModelling(cv::Mat frame, cv::Mat background, int ksize =
 int main() {
 	
     //Name of video
+	//kek
     std::string source{"Walk1.mpg"};
     
     cv::VideoCapture inputVideo(source); // Open input
