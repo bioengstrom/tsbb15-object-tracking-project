@@ -1,9 +1,86 @@
+#include <cassert>
+#include <stdio.h>
+#include <stdarg.h>
+
 //This line includes all the opencv header files
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>  // Video write
+
+/*
+ Display four images at once.
+ The code has been modified to only apply for 4 images.
+ Source code: https://github.com/opencv/opencv/wiki/DisplayManyImages
+ */
+
+void ShowFourImages(std::string title, const cv::Mat& img0, const cv::Mat &img1, const cv::Mat &img2, cv::Mat &img3) {
+int size;
+int i;
+int m, n;
+int x, y;
+
+// w - Maximum number of images in a row
+// h - Maximum number of images in a column
+int w, h;
+
+// scale - How much we have to resize the image
+float scale;
+int max;
+
+w = 2; h = 2;
+size = 300;
+
+// Create a new 3 channel image
+cv::Mat DispImage = cv::Mat::zeros(cv::Size(100 + size*w, 60 + size*h), CV_8UC3);
+
+// Loop for 4 number of arguments
+for (i = 0, m = 20, n = 20; i < 4; i++, m += (20 + size)) {
+    // Get the Pointer to the IplImage
+    cv::Mat img = img0;
+    if(i == 1)
+        img = img1;
+    else if(i == 2)
+        img = img2;
+    else if(i == 3)
+        img = img3;
+
+    // Check whether it is NULL or not
+    // If it is NULL, release the image, and return
+    if(img.empty()) {
+        printf("Invalid arguments");
+        return;
+    }
+
+    // Find the width and height of the image
+    x = img.cols;
+    y = img.rows;
+
+    // Find whether height or width is greater in order to resize the image
+    max = (x > y)? x: y;
+
+    // Find the scaling factor to resize the image
+    scale = (float) ( (float) max / size );
+
+    // Used to Align the images
+    if( i % w == 0 && m!= 20) {
+        m = 20;
+        n+= 20 + size;
+    }
+
+    // Set the image ROI to display the current image
+    // Resize the input image and copy the it to the Single Big Image
+    cv::Rect ROI(m, n, (int)( x/scale ), (int)( y/scale ));
+    cv::Mat temp;
+    resize(img,temp, cv::Size(ROI.width, ROI.height));
+    temp.copyTo(DispImage(ROI));
+}
+
+// Create a new window, and show the Single Big Image
+cv::imshow(title, DispImage);
+
+}
 
 cv::Mat medianBackgroundModelling(cv::Mat frame, cv::Mat background, int ksize = 3, double thresh = 90, int erosion_size = 1, int dilation_size = 2) {
     
@@ -31,16 +108,13 @@ cv::Mat medianBackgroundModelling(cv::Mat frame, cv::Mat background, int ksize =
     
     cv::dilate(binary, binary, dil_element);
     
-    //std::cout << binary << std::endl;
-    binary.convertTo(binary, CV_32FC1);
-    
     return binary;
 }
 /*
  Harris features
  Source code: https://docs.opencv.org/3.4/d4/d7d/tutorial_harris_detector.html
  */
-void cornerHarris_demo(cv::Mat src, cv::Mat src_gray)
+void cornerHarris_demo(cv::Mat &src, cv::Mat &src_gray, cv::Mat &result)
 {
     int blockSize = 2;
     int apertureSize = 3;
@@ -64,8 +138,13 @@ void cornerHarris_demo(cv::Mat src, cv::Mat src_gray)
             }
         }
     }
-    cv::namedWindow( "Harris features" );
-    cv::imshow("Harris features", dst_norm_scaled );
+    result = dst_norm_scaled;
+}
+
+cv::Mat display(cv::Mat img) {
+    cv::cvtColor(img, img, cv::COLOR_GRAY2BGR);
+    img.convertTo(img, CV_8UC3, 255);
+    return img;
 }
 
 int main() {
@@ -79,43 +158,83 @@ int main() {
         std::cout  << "Could not open the input video: " << source << std::endl;
         return -1;
     }
-    
+    /**************************************************************************
+            SLIDER FOR ADJUSTING THRESHOLD
+    ***************************************************************************/
     int threshold = 90;
-    cv::namedWindow("Threshold", cv::WINDOW_AUTOSIZE);
-    cv::createTrackbar( "Threshold", "Threshold", &threshold, 255);
-    
+    int threshold_slider_max = 255;
+    cv::namedWindow("Image", cv::WINDOW_NORMAL);
+    cv::createTrackbar("Threshold", "Image", &threshold, threshold_slider_max);
+  
     while(1) {
         
+        /**************************************************************************
+                        BACKGROUND FRAME
+        ***************************************************************************/
         cv::Mat background = cv::imread ("Walk1000.jpg",cv::IMREAD_UNCHANGED);
         if(background.empty()) {
             return 1;
         }
+        /**************************************************************************
+                        LOAD FRAMES
+        ***************************************************************************/
         cv::Mat frame;
-        cv::Mat bg_mask;
-        
         inputVideo >> frame;
         if(frame.empty()) {
             break;
         }
+        /**************************************************************************
+                   BACKGROUND MODELLING
+        ***************************************************************************/
         //frame, background, ksize for median filter, threshold, erosion size, dilation size
-        bg_mask = medianBackgroundModelling(frame, background, 3, threshold, 1, 1);
-        cv::imshow("Original video", frame);
-        cv::imshow("Background model", bg_mask);
+        cv::Mat bg_mask = medianBackgroundModelling(frame, background, 3, threshold, 1, 1);
+        
+        /**************************************************************************
+                    HARRIS FEATURE POINTS
+         ***************************************************************************/
+        //Find good feature points to track
         //Make grayscale
         //source, destination, color type
         cv::Mat grayFrame;
         cv::cvtColor(frame, grayFrame, cv::COLOR_BGR2GRAY);
-        cornerHarris_demo(frame, grayFrame);
+        cv::Mat harris;
+        cornerHarris_demo(frame, grayFrame, harris);
         
-        /*
-         TODO: use the cv::goodfunctionstotrack() function
-         */
-
+        
+        /**************************************************************************
+                   FIND GOOD FEATURE POINTS
+        ***************************************************************************/
+        bg_mask.convertTo(bg_mask, CV_8UC1);
+        assert(bg_mask.size() == frame.size());
+        assert(!bg_mask.empty());
+        assert(bg_mask.type() == CV_8UC1);
+        
+        cv::Mat corners;
+        int maxCorners = 5;
+        double qualityLevel = 0.01;
+        double minDistance = 5.0;
+        int blockSize=3;
+        bool useHarrisDetector=true;
+        //Free parameter of the harris detector
+        double k=0.04;
+        //(InputArray image, OutputArray corners, int maxCorners, double qualityLevel, double minDistance, InputArray mask=noArray(), int blockSize=3, bool useHarrisDetector=false, double k=0.04 )
+        cv::goodFeaturesToTrack(grayFrame, corners, maxCorners, qualityLevel,  minDistance, bg_mask, blockSize, useHarrisDetector, k);
+        
+        /**************************************************************************
+                   DISPLAY IMAGES
+        ***************************************************************************/
+        cv::Mat show_bg_mask = display(bg_mask);
+        //Display the threshold as text on the mask
+        //(Mat& img, const string& text, Point org, int fontFace, double fontScale, Scalar color, int thickness=1, int lineType=8, bool bottomLeftOrigin=false )
+        cv::putText(show_bg_mask, "Threshold: " + std::to_string(threshold), cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255));
+        ShowFourImages("Image", frame, show_bg_mask, display(harris), show_bg_mask);
         //Break if press ESC
         char c = (char)cv::waitKey(25);
         if(c==27)
             break;
-    }
 
+        
+    }
+    cv::destroyAllWindows();
 	return 0;
 }
