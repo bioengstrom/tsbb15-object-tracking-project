@@ -1,6 +1,7 @@
 #include <cassert>
 #include <stdio.h>
 #include <stdarg.h>
+#include <vector>
 
 //This line includes all the opencv header files
 #include <opencv2/opencv.hpp>
@@ -15,7 +16,7 @@
  Source code: https://github.com/opencv/opencv/wiki/DisplayManyImages
  */
 
-void ShowFourImages(std::string title, const cv::Mat& img0, const cv::Mat &img1, const cv::Mat &img2, cv::Mat &img3) {
+void ShowFourImages(std::string title, const cv::Mat& img0, const cv::Mat &img1, const cv::Mat &img2, const cv::Mat &img3) {
 int size;
 int i;
 int m, n;
@@ -35,51 +36,50 @@ size = 300;
 // Create a new 3 channel image
 cv::Mat DispImage = cv::Mat::zeros(cv::Size(100 + size*w, 60 + size*h), CV_8UC3);
 
-// Loop for 4 number of arguments
-for (i = 0, m = 20, n = 20; i < 4; i++, m += (20 + size)) {
-    // Get the Pointer to the IplImage
-    cv::Mat img = img0;
-    if(i == 1)
-        img = img1;
-    else if(i == 2)
-        img = img2;
-    else if(i == 3)
-        img = img3;
+    // Loop for 4 number of arguments
+    for (i = 0, m = 20, n = 20; i < 4; i++, m += (20 + size)) {
+        // Get the Pointer to the IplImage
+        cv::Mat img = img0;
+        if(i == 1)
+            img = img1;
+        else if(i == 2)
+            img = img2;
+        else if(i == 3)
+            img = img3;
 
-    // Check whether it is NULL or not
-    // If it is NULL, release the image, and return
-    if(img.empty()) {
-        printf("Invalid arguments");
-        return;
+        // Check whether it is NULL or not
+        // If it is NULL, release the image, and return
+        if(img.empty()) {
+            printf("Invalid arguments");
+            return;
+        }
+
+        // Find the width and height of the image
+        x = img.cols;
+        y = img.rows;
+
+        // Find whether height or width is greater in order to resize the image
+        max = (x > y)? x: y;
+
+        // Find the scaling factor to resize the image
+        scale = (float) ( (float) max / size );
+
+        // Used to Align the images
+        if( i % w == 0 && m!= 20) {
+            m = 20;
+            n+= 20 + size;
+        }
+
+        // Set the image ROI to display the current image
+        // Resize the input image and copy the it to the Single Big Image
+        cv::Rect ROI(m, n, (int)( x/scale ), (int)( y/scale ));
+        cv::Mat temp;
+        resize(img,temp, cv::Size(ROI.width, ROI.height));
+        temp.copyTo(DispImage(ROI));
     }
 
-    // Find the width and height of the image
-    x = img.cols;
-    y = img.rows;
-
-    // Find whether height or width is greater in order to resize the image
-    max = (x > y)? x: y;
-
-    // Find the scaling factor to resize the image
-    scale = (float) ( (float) max / size );
-
-    // Used to Align the images
-    if( i % w == 0 && m!= 20) {
-        m = 20;
-        n+= 20 + size;
-    }
-
-    // Set the image ROI to display the current image
-    // Resize the input image and copy the it to the Single Big Image
-    cv::Rect ROI(m, n, (int)( x/scale ), (int)( y/scale ));
-    cv::Mat temp;
-    resize(img,temp, cv::Size(ROI.width, ROI.height));
-    temp.copyTo(DispImage(ROI));
-}
-
-// Create a new window, and show the Single Big Image
-cv::imshow(title, DispImage);
-
+    // Create a new window, and show the Single Big Image
+    cv::imshow(title, DispImage);
 }
 
 cv::Mat medianBackgroundModelling(cv::Mat frame, cv::Mat background, int ksize = 3, double thresh = 90, int erosion_size = 1, int dilation_size = 2) {
@@ -209,7 +209,7 @@ int main() {
         assert(!bg_mask.empty());
         assert(bg_mask.type() == CV_8UC1);
         
-        cv::Mat corners;
+        std::vector<cv::Point> corners[2];
         int maxCorners = 5;
         double qualityLevel = 0.01;
         double minDistance = 5.0;
@@ -218,7 +218,15 @@ int main() {
         //Free parameter of the harris detector
         double k=0.04;
         //(InputArray image, OutputArray corners, int maxCorners, double qualityLevel, double minDistance, InputArray mask=noArray(), int blockSize=3, bool useHarrisDetector=false, double k=0.04 )
-        cv::goodFeaturesToTrack(grayFrame, corners, maxCorners, qualityLevel,  minDistance, bg_mask, blockSize, useHarrisDetector, k);
+        cv::goodFeaturesToTrack(grayFrame, corners[1], maxCorners, qualityLevel,  minDistance, bg_mask, blockSize, useHarrisDetector, k);
+        
+        cv::Mat displayFeatures = cv::Mat::zeros( frame.size(), CV_8UC1 );
+        
+        for( int i = 0; i < corners[1].size() ; i++ )
+        {
+            circle( displayFeatures, corners[1][i], 5, cv::Scalar(255, 255, 255), 2, 8, 0);
+        }
+
         
         /**************************************************************************
                    DISPLAY IMAGES
@@ -226,8 +234,11 @@ int main() {
         cv::Mat show_bg_mask = display(bg_mask);
         //Display the threshold as text on the mask
         //(Mat& img, const string& text, Point org, int fontFace, double fontScale, Scalar color, int thickness=1, int lineType=8, bool bottomLeftOrigin=false )
+        cv::putText(frame, "Original Frame", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255));
         cv::putText(show_bg_mask, "Threshold: " + std::to_string(threshold), cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255));
-        ShowFourImages("Image", frame, show_bg_mask, display(harris), show_bg_mask);
+        cv::putText(displayFeatures, "LK tracking of masked areas" , cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255));
+        cv::putText(harris, "Harris feature points" , cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 0, 0));
+        ShowFourImages("Image", frame, show_bg_mask, display(harris), display(displayFeatures));
         //Break if press ESC
         char c = (char)cv::waitKey(25);
         if(c==27)
