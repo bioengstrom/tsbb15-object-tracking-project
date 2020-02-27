@@ -149,6 +149,8 @@ cv::Mat display(cv::Mat img) {
     return img;
 }
 
+
+
 int main() {
 	
     /**************************************************************************
@@ -176,11 +178,15 @@ int main() {
     // Create multitracker
     cv::Ptr<cv::MultiTracker> multiTracker = cv::MultiTracker::create();
     std::vector<cv::Rect> bboxes;
+    std::vector<cv::Scalar> colors;
+    //Random generator for generating random colors
+    cv::RNG rng(0);
     
     int enough_feature_points = 5;
     bool feature_points_found = false;
     bool tracking_started = false;
     float fps{};
+    
     
     
     /**************************************************************************
@@ -274,6 +280,7 @@ int main() {
                 //Make sure the bounding box is comletely inside the frame
                 if(0 <= bboxes[i].x && 0 <= bboxes[i].width && bboxes[i].x + bboxes[i].width <= tracking_frame.cols && 0 <=  bboxes[i].y && 0 <=  bboxes[i].height &&  bboxes[i].y +  bboxes[i].height <= tracking_frame.rows) {
                     std::cout << "Initialized tracking at point: " << bboxes[i] << std::endl;
+                    colors.push_back(cv::Scalar(rng.uniform(0,255), rng.uniform(0, 255), rng.uniform(0, 255)));
                     multiTracker->add(cv::TrackerBoosting::create(), tracking_frame, cv::Rect2d(bboxes[i]));
                 }
             }
@@ -290,7 +297,7 @@ int main() {
             // Draw tracked objects
             for(unsigned i=0; i<multiTracker->getObjects().size(); i++)
             {
-                rectangle(tracking_frame, multiTracker->getObjects()[i], cv::Scalar(255, 0,0), 2, 1);
+                rectangle(tracking_frame, multiTracker->getObjects()[i], colors[i], 2, 1);
             }
             
         }
