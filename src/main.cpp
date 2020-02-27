@@ -2,13 +2,15 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <vector>
+#include <iostream>
 
-//This line includes all the opencv header files
-#include <opencv2/opencv.hpp>
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/highgui/highgui.hpp>  // Video write
+//OPEN CV
+#include <opencv2/opencv.hpp>           //Base
+#include <opencv2/core/core.hpp>        //Core
+#include <opencv2/highgui/highgui.hpp>  //Gui & video
+#include <opencv2/imgproc.hpp>          //Image processing
+#include <opencv2/tracking.hpp>    //Tracking
+#include <opencv2/core/ocl.hpp>
 
 /*
  Display four images at once.
@@ -24,13 +26,13 @@ int x, y;
 
 // w - Maximum number of images in a row
 // h - Maximum number of images in a column
-int w, h;
+int w = 2, h = 2;
 
 // scale - How much we have to resize the image
 float scale;
 int max;
 
-w = 2; h = 2;
+
 size = 300;
 
 // Create a new 3 channel image
@@ -149,6 +151,9 @@ cv::Mat display(cv::Mat img) {
 
 int main() {
 	
+    /**************************************************************************
+                    OPEN VIDEO
+    ***************************************************************************/
     //Name of video
     std::string source{"Walk1.mpg"};
     
@@ -158,6 +163,26 @@ int main() {
         std::cout  << "Could not open the input video: " << source << std::endl;
         return -1;
     }
+    cv::Mat frame;
+    inputVideo >> frame;
+    cv::Mat tracking_frame = frame.clone();
+    
+    /**********************************************************************
+                    TRACKING
+    
+    ************************************************************************/
+    //Create single tracker
+    cv::Ptr<cv::Tracker> tracker = cv::TrackerBoosting::create();
+    // Create multitracker
+    cv::Ptr<cv::MultiTracker> multiTracker = cv::MultiTracker::create();
+    std::vector<cv::Rect> bboxes;
+    
+    int enough_feature_points = 5;
+    bool feature_points_found = false;
+    bool tracking_started = false;
+    float fps{};
+    
+    
     /**************************************************************************
             SLIDER FOR ADJUSTING THRESHOLD
     ***************************************************************************/
@@ -178,11 +203,12 @@ int main() {
         /**************************************************************************
                         LOAD FRAMES
         ***************************************************************************/
-        cv::Mat frame;
+        
         inputVideo >> frame;
         if(frame.empty()) {
             break;
         }
+        tracking_frame = frame.clone();
         /**************************************************************************
                    BACKGROUND MODELLING
         ***************************************************************************/
@@ -204,47 +230,91 @@ int main() {
         /**************************************************************************
                    FIND GOOD FEATURE POINTS
         ***************************************************************************/
-        bg_mask.convertTo(bg_mask, CV_8UC1);
-        assert(bg_mask.size() == frame.size());
-        assert(!bg_mask.empty());
-        assert(bg_mask.type() == CV_8UC1);
-        
-        std::vector<cv::Point> corners[2];
-        int maxCorners = 5;
-        double qualityLevel = 0.01;
-        double minDistance = 5.0;
-        int blockSize=3;
-        bool useHarrisDetector=true;
-        //Free parameter of the harris detector
-        double k=0.04;
-        //(InputArray image, OutputArray corners, int maxCorners, double qualityLevel, double minDistance, InputArray mask=noArray(), int blockSize=3, bool useHarrisDetector=false, double k=0.04 )
-        cv::goodFeaturesToTrack(grayFrame, corners[1], maxCorners, qualityLevel,  minDistance, bg_mask, blockSize, useHarrisDetector, k);
-        
         cv::Mat displayFeatures = cv::Mat::zeros( frame.size(), CV_8UC1 );
         
-        for( int i = 0; i < corners[1].size() ; i++ )
-        {
-            circle( displayFeatures, corners[1][i], 5, cv::Scalar(255, 255, 255), 2, 8, 0);
+        //Keep looking for feature points if we dont have enough
+        if(!feature_points_found) {
+            bg_mask.convertTo(bg_mask, CV_8UC1);
+            assert(bg_mask.size() == frame.size());
+            assert(!bg_mask.empty());
+            assert(bg_mask.type() == CV_8UC1);
+            
+            std::vector<cv::Point> corners[2];
+            int maxCorners = 5;
+            double qualityLevel = 0.01;
+            double minDistance = 5.0;
+            int blockSize=3;
+            bool useHarrisDetector=true;
+            //Free parameter of the harris detector
+            double k=0.04;
+            //(InputArray image, OutputArray corners, int maxCorners, double qualityLevel, double minDistance, InputArray mask=noArray(), int blockSize=3, bool useHarrisDetector=false, double k=0.04 )
+            cv::goodFeaturesToTrack(grayFrame, corners[1], maxCorners, qualityLevel,  minDistance, bg_mask, blockSize, useHarrisDetector, k);
+            
+            for( int i = 0; i < corners[1].size() ; i++ )
+            {
+                circle( displayFeatures, corners[1][i], 5, cv::Scalar(255, 255, 255), 2, 8, 0);
+                //Push rectangle surronding feature point to vector
+                bboxes.push_back(cv::Rect(corners[1][i].x, corners[1][i].x, 20, 20));
+                std::cout << corners[1][i].x << " " << corners[1][i].x << std::endl;
+            }
+            if(bboxes.size() >= enough_feature_points) {
+                std::cout << "Found enough feature points: " << bboxes.size() << std::endl;
+                feature_points_found = true;
+            }
         }
-
+        /**********************************************************************
+                        TRACKING
+        
+        ************************************************************************/
+        else if (feature_points_found && !tracking_started){ //Initialize tracking the feature points
+            std::cout << "Initializing multitracker..." << std::endl;
+            
+            // Initialize multitracker
+            for(int i=0; i < bboxes.size(); i++) {
+                //Make sure the bounding box is comletely inside the frame
+                if(0 <= bboxes[i].x && 0 <= bboxes[i].width && bboxes[i].x + bboxes[i].width <= tracking_frame.cols && 0 <=  bboxes[i].y && 0 <=  bboxes[i].height &&  bboxes[i].y +  bboxes[i].height <= tracking_frame.rows) {
+                    std::cout << "Initialized tracking at point: " << bboxes[i] << std::endl;
+                    multiTracker->add(cv::TrackerBoosting::create(), tracking_frame, cv::Rect2d(bboxes[i]));
+                }
+            }
+            tracking_started = true;
+            std::cout << "Tracking objects..." << std::endl;
+        }
+        else {
+            
+            //Update the tracking result with new frame
+            double timer = (double)cv::getTickCount();
+            multiTracker->update(frame);
+            // Calculate Frames per second (FPS)
+            fps = cv::getTickFrequency() / ((double)cv::getTickCount() - timer);
+            // Draw tracked objects
+            for(unsigned i=0; i<multiTracker->getObjects().size(); i++)
+            {
+                rectangle(tracking_frame, multiTracker->getObjects()[i], cv::Scalar(255, 0,0), 2, 1);
+            }
+            
+        }
+        
+        // Display tracker type on frame
+        cv::putText(tracking_frame, "Booster Tracker", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,255,255),2);
+        // Display FPS on frame
+        cv::putText(tracking_frame, "FPS : " + std::to_string(int(fps)), cv::Point(10,60), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,255,255), 2);
         
         /**************************************************************************
                    DISPLAY IMAGES
         ***************************************************************************/
-        cv::Mat show_bg_mask = display(bg_mask);
         //Display the threshold as text on the mask
         //(Mat& img, const string& text, Point org, int fontFace, double fontScale, Scalar color, int thickness=1, int lineType=8, bool bottomLeftOrigin=false )
-        cv::putText(frame, "Original Frame", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255));
-        cv::putText(show_bg_mask, "Threshold: " + std::to_string(threshold), cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255));
-        cv::putText(displayFeatures, "LK tracking of masked areas" , cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255));
-        cv::putText(harris, "Harris feature points" , cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 0, 0));
-        ShowFourImages("Image", frame, show_bg_mask, display(harris), display(displayFeatures));
+        cv::putText(frame, "Original Frame", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255),2);
+        cv::putText(bg_mask, "Background modelling", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255),2);
+        cv::putText(bg_mask, "Threshold: " + std::to_string(threshold), cv::Point(10,60), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255),2);
+        cv::putText(displayFeatures, "Harris feature points" , cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255),2);
+        //cv::putText(harris, "Harris feature points" , cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 0, 0),2);
+        ShowFourImages("Image", frame, display(bg_mask), display(displayFeatures), tracking_frame);
         //Break if press ESC
         char c = (char)cv::waitKey(25);
         if(c==27)
             break;
-
-        
     }
     cv::destroyAllWindows();
 	return 0;
