@@ -229,8 +229,8 @@ int main() {
         //source, destination, color type
         cv::Mat grayFrame;
         cv::cvtColor(frame, grayFrame, cv::COLOR_BGR2GRAY);
-        cv::Mat harris;
-        cornerHarris_demo(frame, grayFrame, harris);
+        //cv::Mat harris;
+        //cornerHarris_demo(frame, grayFrame, harris);
         
         
         /**************************************************************************
@@ -289,12 +289,12 @@ int main() {
         }
         else {
             
-            //Update the tracking result with new frame
             double timer = (double)cv::getTickCount();
-            multiTracker->update(frame);
+            //Update the tracking result with new frame
+            multiTracker->update(tracking_frame);
             // Calculate Frames per second (FPS)
             fps = cv::getTickFrequency() / ((double)cv::getTickCount() - timer);
-            // Draw tracked objects
+            // Draw tracked objects, if the tracking was ok
             for(unsigned i=0; i<multiTracker->getObjects().size(); i++)
             {
                 rectangle(tracking_frame, multiTracker->getObjects()[i], colors[i], 2, 1);
