@@ -146,14 +146,12 @@ double isForeground(double x, double w_init, int K = 5, double alpha = 0.002, do
     return 0.0;
 }
 
-void mixtureBackgroundModelling(cv::Mat &frame, int K, double alpha, double T, double w_init, double var_init) {
+void mixtureBackgroundModelling(cv::Mat &frame, double w_init, double var_init, int K = 5, double alpha = 0.002, double T = 0.8) {
 
     cv::cvtColor(frame, frame, cv::COLOR_BGR2GRAY);
     frame.convertTo(frame, CV_64F);
-    
     frame.forEach<double>([&] (double &x, const int * position) -> void {
-        //(int K = 5, double alpha = 0.002, double T = 0.8, double var_init = 10.0, double w_init, double x)
-        x = isForeground(x, 0.002);
+        x = isForeground(x, w_init, K, alpha, T, var_init);
     });
 }
 
@@ -177,8 +175,8 @@ int main() {
         if (frame.empty()) {
             break;
         }
-        
-        mixtureBackgroundModelling(frame, 5, 0.002, 0.8, 0.1, 10.0);
+        //(cv::Mat &frame, double w_init, double var_init, int K = 5, double alpha = 0.002, double T = 0.8)
+        mixtureBackgroundModelling(frame, 0.002, 10.0, 5, 0.002, 0.8);
         cv::imshow("Original video", frame);
         
         //Break if press ESC
