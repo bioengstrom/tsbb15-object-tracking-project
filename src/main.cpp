@@ -49,7 +49,7 @@ struct SortStruct
     double covar;
 };
 
-double getB( double x, double w_init, int K = 5, double alpha = 0.002, double T = 0.8, double var_init = 10.0)  {
+double isForeground(double x, double w_init, int K = 5, double alpha = 0.002, double T = 0.8, double var_init = 10.0)  {
 
     std::vector<SortStruct> variables{};
     const double lambda = 2.5;
@@ -153,7 +153,7 @@ void mixtureBackgroundModelling(cv::Mat &frame, int K, double alpha, double T, d
     
     frame.forEach<double>([&] (double &x, const int * position) -> void {
         //(int K = 5, double alpha = 0.002, double T = 0.8, double var_init = 10.0, double w_init, double x)
-        x = getB(x, 0.002);
+        x = isForeground(x, 0.002);
     });
 }
 
