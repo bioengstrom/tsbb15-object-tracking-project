@@ -1,4 +1,4 @@
-//This line includes all the opencv header files
+//Opencv header files
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -6,7 +6,6 @@
 #include <opencv2/highgui/highgui.hpp>  // Video write
 #include <vector>
 #include <algorithm>
-
 
 cv::Mat medianBackgroundModelling(cv::Mat frame, cv::Mat background, int ksize = 3, double thresh = 90, int erosion_size = 1, int dilation_size = 2) {
 
@@ -56,7 +55,6 @@ double isForeground(double x, double w_init, int K = 5, double alpha = 0.002, do
     bool match{false};
     int m{};
     double totWeight = 0.0;
-
 
     std::vector<double> d(K, 0.0); //mahalanobis
     std::vector<double> covar_init(K, var_init);
@@ -166,7 +164,6 @@ int main() {
         return -1;
     }
 
-    int threshold = 10;
     cv::Mat frame;
 
     while (1) {
