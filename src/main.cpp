@@ -214,8 +214,10 @@ int main() {
         /**************************************************************************
                         BACKGROUND FRAME
         ***************************************************************************/
-        cv::Mat background = cv::imread ("Walk1000.jpg",cv::IMREAD_UNCHANGED);
+        std::string background_img{"Walk1000.jpg"};
+        cv::Mat background = cv::imread (background_img ,cv::IMREAD_UNCHANGED);
         if(background.empty()) {
+            std::cout << "Error! Could not find background image " << background_img << std::endl;
             return 1;
         }
         /**************************************************************************
