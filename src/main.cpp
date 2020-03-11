@@ -1,3 +1,8 @@
+#include "BackgroundModelling.hpp"
+#include "ExternalCode.hpp"
+#include "Tracking.hpp"
+#include "Utilities.hpp"
+
 #include <cassert>
 #include <stdio.h>
 #include <stdarg.h>
@@ -11,87 +16,6 @@
 #include <opencv2/imgproc.hpp>          //Image processing
 #include <opencv2/tracking.hpp>    //Tracking
 #include <opencv2/core/ocl.hpp>
-
-
-#include "Old_Functions.hpp"
-/*
- Display four images at once.
- The code has been modified to only apply for 4 images.
- Source code: https://github.com/opencv/opencv/wiki/DisplayManyImages
- */
-
-void ShowFourImages(std::string title, const cv::Mat& img0, const cv::Mat &img1, const cv::Mat &img2, const cv::Mat &img3) {
-int size;
-int i;
-int m, n;
-int x, y;
-
-// w - Maximum number of images in a row
-// h - Maximum number of images in a column
-int w = 2, h = 2;
-
-// scale - How much we have to resize the image
-float scale;
-int max;
-
-
-size = 300;
-
-// Create a new 3 channel image
-cv::Mat DispImage = cv::Mat::zeros(cv::Size(100 + size*w, 60 + size*h), CV_8UC3);
-
-    // Loop for 4 number of arguments
-    for (i = 0, m = 20, n = 20; i < 4; i++, m += (20 + size)) {
-        // Get the Pointer to the IplImage
-        cv::Mat img = img0;
-        if(i == 1)
-            img = img1;
-        else if(i == 2)
-            img = img2;
-        else if(i == 3)
-            img = img3;
-
-        // Check whether it is NULL or not
-        // If it is NULL, release the image, and return
-        if(img.empty()) {
-            printf("Invalid arguments");
-            return;
-        }
-
-        // Find the width and height of the image
-        x = img.cols;
-        y = img.rows;
-
-        // Find whether height or width is greater in order to resize the image
-        max = (x > y)? x: y;
-
-        // Find the scaling factor to resize the image
-        scale = (float) ( (float) max / size );
-
-        // Used to Align the images
-        if( i % w == 0 && m!= 20) {
-            m = 20;
-            n+= 20 + size;
-        }
-
-        // Set the image ROI to display the current image
-        // Resize the input image and copy the it to the Single Big Image
-        cv::Rect ROI(m, n, (int)( x/scale ), (int)( y/scale ));
-        cv::Mat temp;
-        resize(img,temp, cv::Size(ROI.width, ROI.height));
-        temp.copyTo(DispImage(ROI));
-    }
-
-    // Create a new window, and show the Single Big Image
-    cv::imshow(title, DispImage);
-}
-
-
-cv::Mat display(cv::Mat img) {
-    cv::cvtColor(img, img, cv::COLOR_GRAY2BGR);
-    img.convertTo(img, CV_8UC3, 255);
-    return img;
-}
 
 
 
@@ -156,8 +80,10 @@ int main() {
         /**************************************************************************
                         BACKGROUND FRAME
         ***************************************************************************/
-        cv::Mat background = cv::imread ("Walk1000.jpg",cv::IMREAD_UNCHANGED);
+        std::string background_img{"Walk1000.jpg"};
+        cv::Mat background = cv::imread (background_img ,cv::IMREAD_UNCHANGED);
         if(background.empty()) {
+            std::cout << "Error! Could not find background image " << background_img << std::endl;
             return 1;
         }
         /**************************************************************************
@@ -225,7 +151,7 @@ int main() {
                 //Check intersection between areas and assign bounding rectangle to last rectangle
                 new_overlap = (unique_objects[j] & boundRect[i]).area();
                 if(overlap_area < new_overlap) {
-                    std::cout << "Found overlap" << std::endl;
+                    //std::cout << "Found overlap" << std::endl;
                     overlap_area = new_overlap;
                     //Update to new position
                     unique_objects[j] = cv::Rect{boundRect[i]};
@@ -233,18 +159,18 @@ int main() {
                 }
             }
             if(!found_obj) {
-                std::cout << "Added new object" << std::endl;
+                //std::cout << "Added new object" << std::endl;
                 unique_objects.push_back(cv::Rect{boundRect[i]});
                 unique_colors.push_back(cv::Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255)));
             }
             else {
-                std::cout << "Assigned to object" << std::endl;
+                //std::cout << "Assigned to object" << std::endl;
             }
             found_obj = false;
             overlap_area = 0;
             
         }
-        std::cout << "Found objects: " << unique_objects.size() << std::endl << std::endl;
+        //std::cout << "Found objects: " << unique_objects.size() << std::endl << std::endl;
         
         // Draw unique object bonding rects
         for( int i = 0; i< unique_objects.size(); i++ )
