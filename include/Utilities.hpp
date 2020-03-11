@@ -6,4 +6,6 @@
 
 cv::Mat display(cv::Mat img);
 
+void printEvalutationToCSV(std::ostream& os, int framenumber, int objectID, int ul_x, int ul_y, int width, int height);
+
 #endif /* Utilities_hpp */
