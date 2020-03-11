@@ -1,6 +1,0 @@
-cmake_minimum_required(VERSION 2.8)
-set("OpenCV_DIR" "/Users/ylvaselling/Documents/TSBB15\ Computer\ Vision/Projekt/OpenCV/build_opencv")
-find_package( OpenCV REQUIRED )
-include_directories( ${OpenCV_INCLUDE_DIRS} )
-add_executable( OpenCV_project main.cpp )
-target_link_libraries( OpenCV_project ${OpenCV_LIBS} )
