@@ -48,78 +48,93 @@ struct SortStruct
     double covar;
 };
 
-double isForeground(double x, double w_init, int K = 5, double alpha = 0.002, double T = 0.8, double var_init = 10.0)  {
+double isForeground(cv::Mat &frame, std::vector<cv::Mat>& myMat, std::vector<cv::Mat>& varMat,
+    std::vector<cv::Mat>& wMat, double w_init, int K = 5, double alpha = 0.002, double T = 0.8, double var_init = 10.0)  {
 
     std::vector<SortStruct> variables{};
     const double lambda = 2.5;
-    bool match{false};
-    int m{};
+    //bool match{false};
+   // int m{};
     double totWeight = 0.0;
 
-    std::vector<double> d(K, 0.0); //mahalanobis
-    std::vector<double> covar_init(K, var_init);
-    std::vector<double> covar(K, var_init);
-    std::vector<double> my(K, 15.0);
-    std::vector<double> w(K, w_init);
-    std::vector<double> rho(K, 0.0);
-    std::vector<double> quotient_vec(K, 0.0);
+    std::vector<cv::Mat> d(K, cv::Mat::zeros(cv::Size(frame.rows, frame.cols), CV_64FC1)); //mahalanobis
+    std::vector<cv::Mat> rho(K, cv::Mat::zeros(cv::Size(frame.rows, frame.cols), CV_64FC1));
+    std::vector<cv::Mat> quotient_vec(K, cv::Mat::zeros(cv::Size(frame.rows, frame.cols), CV_64FC1));
 
-
+    cv::Mat match;
+    cv::Mat m;
+    cv::Mat mk;
+    //cv::Mat frame_my = cv::Mat::zeros(cv::Size(frame.rows, frame.cols), CV_64FC1);
+    cv::Mat frame_my;
+    frame.copyTo(frame_my);
     // For all k mixture models, check if the pixel is foreground or background
     // Match == true means the pixel value is matching the mixture model
+
+    
+
     for (int k = 0; k < K; k++) {
+        cv::subtract(frame, myMat[k], frame_my);
+        std::cout << frame_my << std::endl;
+        cv::multiply(frame_my,frame_my, frame_my);
+        std::cout << frame_my << std::endl;
+        cv::pow(d[k], 0.5, frame_my);
+     
+        cv::pow(varMat[k], 0.5, cv::Mat(varMat[k]));
 
-        d[k] = sqrt((x - my[k]) * (x - my[k]));
+        match = d[k] < lambda * varMat[k];
+        match.forEach<int>([](int& pixelMatch, const int* position) -> void
+            {
 
-        if (d[k] < lambda * sqrt(covar[k])) {
-
-            if (match == false) {
+            }
+        );
+    }
+         /*   if (match == false) {
                 m = k;
             }
-            else if ((w[k] / sqrt(covar[k])) > (w[m] / sqrt(covar[m]))) {
+            else if ((wMat[k] / sqrt(varMat[k])) > (wMat[m] / sqrt(varMat[m]))) {
                 m = k;
             }
             match = true;
         }
-    }
+    
 
 	if (match == false) {
 		m = K;
-		w[m] = alpha;
-		my[m] = x;
-		covar[m] = covar_init[m];
+		wMat[m] = alpha;
+		myMat[m] = frame;
+		varMat[m] = var_init;
 	}
 	else {
-		w[m] = ((1 - alpha) * w[m]) + alpha;
-		rho[m] = alpha / w[m];
-		my[m] = ((1 - rho[m]) * my[m]) + (rho[m] * x);
-		covar[m] = ((1 - rho[m]) * covar[m]) + (rho[m] * (x - my[m]) * (x - my[m]));
+		wMat[m] = ((1 - alpha) * wMat[m]) + alpha;
+		rho[m] = alpha / wMat[m];
+		myMat[m] = ((1 - rho[m]) * myMat[m]) + (rho[m] * frame);
+		varMat[m] = ((1 - rho[m]) * varMat[m]) + (rho[m] * (frame - myMat[m]) * (frame - myMat[m]));
 	}
         
-	// RENORMALIZE W
+	// RENORMALIZE wMat
 	totWeight = 0;
-	for (auto& n : w)
+	for (auto& n : wMat)
 		totWeight += n;
 
 	for (int i = 0; i < K; i++)
 	{
-		w[i] = w[i] / totWeight;
+		wMat[i] = wMat[i] / totWeight;
 	}
 
 	if (match) {
 
-		// Sort w, my, covar with respect to weight/covariance ratio
+		// Sort w, my, varMat with respect to weight/varMatiance ratio
 		for (int i = 0; i < K; i++) {
-			quotient_vec[i] = w[i] / sqrt(covar[i]);
-			variables.push_back({ quotient_vec[i], w[i], my[i], covar[i] });
+			quotient_vec[i] = wMat[i] / sqrt(varMat[i]);
+			variables.push_back({ quotient_vec[i], wMat[i], myMat[i], varMat[i] });
 		}
 		std::sort(variables.begin(), variables.end(),
 			[](const SortStruct i, const SortStruct j) {return i.quotient < j.quotient; });
 
 		for (int i = 0; i < K; i++) {
-			w[i] = variables[i].w;
-			my[i] = variables[i].my;
-			covar[i] = variables[i].covar;
+			wMat[i] = variables[i].wMat;
+			myMat[i] = variables[i].myMat;
+			varMat[i] = variables[i].varMat;
 		}
 	}
 
@@ -127,30 +142,32 @@ double isForeground(double x, double w_init, int K = 5, double alpha = 0.002, do
 	int B = 0;
 			   
 	for (int k = 0; k < K; k++) {
-		sum += w[k];
+		sum += wMat[k];
 		if (sum > T) {
 			B = k;
 			break;
 		}
 	}
-	//Background segmentation for gaussian mixture model
+	//Background segmentation for gaussian miframeture model
 	for (int k = 0; k < B; k++)
 	{
-		d[k] = sqrt((x - my[k]) * (x - my[k]));
-		if (d[k] < lambda * sqrt(covar[k])) {
+		d[k] = sqrt((frame - myMat[k]) * (frame - myMat[k]));
+		if (d[k] < lambda * sqrt(varMat[k])) {
 			return 1.0;
 		}
 	}
-    return 0.0;
+    return 0.0;*/
+        return 0;
 }
 
-void mixtureBackgroundModelling(cv::Mat &frame, double w_init, double var_init, int K = 5, double alpha = 0.002, double T = 0.8) {
+void mixtureBackgroundModelling(cv::Mat &frame, std::vector<cv::Mat> &myMat, std::vector<cv::Mat>& varMat,
+    std::vector<cv::Mat>& wMat, double w_init, double var_init, int K = 5, double alpha = 0.002, double T = 0.8) {
 
     cv::cvtColor(frame, frame, cv::COLOR_BGR2GRAY);
     frame.convertTo(frame, CV_64F);
-    frame.forEach<double>([&] (double &x, const int * position) -> void {
-        x = isForeground(x, w_init, K, alpha, T, var_init);
-    });
+ 
+        frame = isForeground(frame, myMat, varMat, wMat,w_init, K, alpha, T, var_init);
+   
 }
 
 int main() {
@@ -165,21 +182,33 @@ int main() {
     }
 
     cv::Mat frame;
+    inputVideo >> frame;
+
+    cv::Mat myMat = cv::Mat(cv::Size(frame.rows, frame.cols), CV_64F, cv::Scalar(10.0));
+    std::vector<cv::Mat> my(5, myMat);
+
+    cv::Mat varMat = cv::Mat(cv::Size(frame.rows, frame.cols), CV_64F, cv::Scalar(10.0));
+    std::vector<cv::Mat> var(5, varMat);
+
+    cv::Mat wMat = cv::Mat(cv::Size(frame.rows, frame.cols), CV_64F, cv::Scalar(0.002));
+    std::vector<cv::Mat> w(5, wMat);
 
     while (1) {
 
-        inputVideo >> frame;
-        if (frame.empty()) {
-            break;
-        }
+    
         //(cv::Mat &frame, double w_init, double var_init, int K = 5, double alpha = 0.002, double T = 0.8)
-        mixtureBackgroundModelling(frame, 0.002, 10.0, 5, 0.002, 0.8);
+        mixtureBackgroundModelling(frame, my, var, w, 0.002, 10.0, 5, 0.002, 0.8);
         cv::imshow("Original video", frame);
         
         //Break if press ESC
         char c = (char)cv::waitKey(25);
         if (c == 27)
             break;
+
+        inputVideo >> frame;
+        if (frame.empty()) {
+            break;
+        }
     }
 
     return 0;
