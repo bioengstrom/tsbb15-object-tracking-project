@@ -57,12 +57,12 @@ double isForeground(cv::Mat &frame, std::vector<cv::Mat>& myMat, std::vector<cv:
    // int m{};
     double totWeight = 0.0;
 
-    std::vector<cv::Mat> d(K, cv::Mat::zeros(cv::Size(frame.rows, frame.cols), CV_64FC1)); //mahalanobis
-    std::vector<cv::Mat> rho(K, cv::Mat::zeros(cv::Size(frame.rows, frame.cols), CV_64FC1));
-    std::vector<cv::Mat> quotient_vec(K, cv::Mat::zeros(cv::Size(frame.rows, frame.cols), CV_64FC1));
+    std::vector<cv::Mat> d(K, cv::Mat::zeros(frame.rows, frame.cols, CV_64F)); //mahalanobis
+    std::vector<cv::Mat> rho(K, cv::Mat::zeros(frame.rows, frame.cols, CV_64F));
+    std::vector<cv::Mat> quotient_vec(K, cv::Mat::zeros(frame.rows, frame.cols, CV_64F));
 
     cv::Mat match;
-    cv::Mat m;
+    int m;
     cv::Mat mk;
     //cv::Mat frame_my = cv::Mat::zeros(cv::Size(frame.rows, frame.cols), CV_64FC1);
     cv::Mat frame_my;
@@ -74,21 +74,45 @@ double isForeground(cv::Mat &frame, std::vector<cv::Mat>& myMat, std::vector<cv:
 
     for (int k = 0; k < K; k++) {
         cv::subtract(frame, myMat[k], frame_my);
-        std::cout << frame_my << std::endl;
+        //std::cout << frame_my << std::endl;
         cv::multiply(frame_my,frame_my, frame_my);
-        std::cout << frame_my << std::endl;
+        //std::cout << frame_my << std::endl;
         cv::pow(d[k], 0.5, frame_my);
      
         cv::pow(varMat[k], 0.5, cv::Mat(varMat[k]));
 
         match = d[k] < lambda * varMat[k];
-        match.forEach<int>([](int& pixelMatch, const int* position) -> void
-            {
 
+        match.forEach<int>([&](int& pixelMatch, const int * position) -> void
+            {
+                double& w = wMat[m].at<double>(position);
+                double& var = varMat[m].at<double>(position);
+                double& my = myMat[m].at<double>(position);
+                double& x = frame.at<double>(position);
+
+                if (pixelMatch == 0) {
+                    m = k;
+                }
+                else if (w / sqrt(var) > w / sqrt(var)) {
+                    m = k;
+                }
+
+                if (pixelMatch == 0) {
+                    m = K;
+                    w = alpha;
+                    my = x;
+                    var = var_init;
+                }
+                else {
+                    w = ((1 - alpha) * w) + alpha;
+                    rho[m] = alpha / w;
+                    m = ((1 - rho[m].at<double>(position)) * my) + (rho[m].at<double>(position) * x);
+                    var = ((1 - rho[m].at<double>(position)) * var + (rho[m].at<double>(position) * (x - my) * (x - my)));
+                }
             }
         );
     }
-         /*   if (match == false) {
+         /* if (match == false) {
                 m = k;
             }
             else if ((wMat[k] / sqrt(varMat[k])) > (wMat[m] / sqrt(varMat[m]))) {
@@ -166,7 +190,7 @@ void mixtureBackgroundModelling(cv::Mat &frame, std::vector<cv::Mat> &myMat, std
     cv::cvtColor(frame, frame, cv::COLOR_BGR2GRAY);
     frame.convertTo(frame, CV_64F);
  
-        frame = isForeground(frame, myMat, varMat, wMat,w_init, K, alpha, T, var_init);
+    frame = isForeground(frame, myMat, varMat, wMat,w_init, K, alpha, T, var_init);
    
 }
 
@@ -184,13 +208,13 @@ int main() {
     cv::Mat frame;
     inputVideo >> frame;
 
-    cv::Mat myMat = cv::Mat(cv::Size(frame.rows, frame.cols), CV_64F, cv::Scalar(10.0));
+    cv::Mat myMat = cv::Mat(frame.rows, frame.cols, CV_64F, cv::Scalar(10.0));
     std::vector<cv::Mat> my(5, myMat);
 
-    cv::Mat varMat = cv::Mat(cv::Size(frame.rows, frame.cols), CV_64F, cv::Scalar(10.0));
+    cv::Mat varMat = cv::Mat(frame.rows, frame.cols, CV_64F, cv::Scalar(10.0));
     std::vector<cv::Mat> var(5, varMat);
 
-    cv::Mat wMat = cv::Mat(cv::Size(frame.rows, frame.cols), CV_64F, cv::Scalar(0.002));
+    cv::Mat wMat = cv::Mat(frame.rows, frame.cols, CV_64F, cv::Scalar(0.002));
     std::vector<cv::Mat> w(5, wMat);
 
     while (1) {
