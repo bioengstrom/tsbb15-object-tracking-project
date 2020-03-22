@@ -12,6 +12,7 @@
 #include <sstream>
 #include <vector>
 #include <algorithm>
+#include <map>
 #include "opencv2/core.hpp"
 #include "opencv2/imgproc/imgproc_c.h"
 
@@ -36,7 +37,9 @@ struct Evaluation {
     int true_positives{};
     int false_positives{};
     int false_negatives{};
+    int id_switches{};
     double total_tp_overlap{};
+    std::map<int,int> id_pairs;
 };
 
 std::istream& operator>> (std::istream &in, Object &obj)
@@ -102,7 +105,7 @@ std::ostream& operator<< (std::ostream &out, Evaluation &ev)
     
     //Average TP overlap: Computed only over the true positives (with correct ID).
     out << std::left << std::setw(30) << "Identity switches:";
-    out << "-" << std::endl;
+    out << ev.id_switches << std::endl;
     
     
     return out;
@@ -133,10 +136,27 @@ void evaluate(Evaluation &ev, std::vector<Object> &gt, std::vector<Object> &foun
             //If overlap is larger than 20% we have a true positive! Remove the objects from
             //each vector
             if(overlap > 0.2) {
-                ev.true_positives++;
-                ev.total_tp_overlap += overlap;
-                found.erase(largest_found_intsect);
-                gt.erase(gt.begin());
+                //Check for id switch
+                //Is the object id new?
+                auto it = ev.id_pairs.find(gt[i].objectID);
+                
+                //Identity switch!
+                if( it != ev.id_pairs.end() && it->second != gt[i].objectID) {
+                    ev.id_switches++;
+                    it->second = gt[i].objectID;
+                }
+                else {
+                    // True positive!
+                    
+                    //A new object has entered the video
+                    if (it == ev.id_pairs.end()) {
+                        ev.id_pairs.insert(std::pair<int,int>(gt[i].objectID, largest_found_intsect->objectID));
+                    }
+                    ev.true_positives++;
+                    ev.total_tp_overlap += overlap;
+                    found.erase(largest_found_intsect);
+                    gt.erase(std::next(gt.begin(), i));
+                }
             }
             else {
                 i++;
@@ -182,7 +202,7 @@ int main(int argc, const char * argv[]) {
     }
     
     /************************************************************************
-                  Evaluate files, line by line
+             Evaluate files, compare line by line
     ***********************************************************************/
     
     std::vector<Object> true_obj{};
@@ -204,17 +224,14 @@ int main(int argc, const char * argv[]) {
         //Compare the vectors
         evaluate(evaluation, true_obj, found_obj);
         
-        
-        //Print result to file
-        
         //Clear vectors
         true_obj.clear();
         found_obj.clear();
     }
     
+    //Print result to file
     std::cout << evaluation << std::endl;
     
-
     ground_truth.close();
     tracking_results.close();
     
