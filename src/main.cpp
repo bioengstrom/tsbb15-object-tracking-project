@@ -63,7 +63,7 @@ double isForeground(double x, std::vector<cv::Vec3d*>& mix_comps, double w_init,
     std::vector<SortStruct> variables{};
     const double lambda = 2.5;
     bool match{false};
-    int m{};
+    int m = 0;
     double totWeight = 0.0;
     
     std::vector<double> d(K, 0.0); //mahalanobis
@@ -154,6 +154,7 @@ double isForeground(double x, std::vector<cv::Vec3d*>& mix_comps, double w_init,
 void mixtureBackgroundModelling(cv::Mat &frame, std::vector<cv::Mat>& variableMatrices, cv::Mat &background_model, double w_init, double var_init, int K = 5, double alpha = 0.002, double T = 0.8) {
 
     cv::cvtColor(frame, frame, cv::COLOR_BGR2GRAY);
+   // std::cout << frame.type() << std::endl;
     frame.convertTo(frame, CV_64F);
      
      frame.forEach<double>([&](double& pixel, const int position[]) -> void {
@@ -163,7 +164,9 @@ void mixtureBackgroundModelling(cv::Mat &frame, std::vector<cv::Mat>& variableMa
                     variables.push_back(&variableMatrices[i].at<cv::Vec3d>(position[0], position[1]));
                 }
                 pixel = isForeground(pixel, variables, w_init, K, alpha, T, var_init);
+
       });
+    
 }
 
 
@@ -184,9 +187,14 @@ int main() {
     cv::Mat background_model = cv::Mat(frame.rows, frame.cols, CV_64F, cv::Scalar(0.000));
     
     std::vector<cv::Mat> variableMatrices;
+  
+    double var = 1000.0;
+    double w = 0.002;
+    double alpha = 0.002;
+
     int K = 5;
     for(int k = 0; k < K; k++) {
-        variableMatrices.push_back(cv::Mat(frame.rows, frame.cols, CV_64FC3, cv::Scalar(5 + rand() % 10 + 1 , 10.0, 0.002)));
+        variableMatrices.push_back(cv::Mat(frame.rows, frame.cols, CV_64FC3, cv::Scalar(400.0, var, w)));
     }
     
     while (1) {
@@ -194,7 +202,7 @@ int main() {
         cv::imshow("Original video", frame);
     
         //(cv::Mat &frame, double w_init, double var_init, int K = 5, double alpha = 0.002, double T = 0.8)
-        mixtureBackgroundModelling(frame, variableMatrices, background_model, 0.002, 10.0, 5, 0.002, 0.8);
+        mixtureBackgroundModelling(frame, variableMatrices, background_model, w, var, K, alpha, 0.8);
         cv::imshow("Mixture model", frame);
         
         //Break if press ESC
