@@ -184,6 +184,10 @@ int main() {
         }
         //std::cout << "Found objects: " << unique_objects.size() << std::endl << std::endl;
         
+        //If no moving objects are found, print the frame number
+        if(unique_objects.size() == 0) {
+            myfile << frameNumber << std::endl;
+        }
         // Draw unique object bonding rects
         for( int i = 0; i< unique_objects.size(); i++ )
         {
