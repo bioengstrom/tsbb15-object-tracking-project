@@ -229,9 +229,13 @@ int main(int argc, const char * argv[]) {
         true_obj.clear();
         found_obj.clear();
     }
+    std::cout << evaluation;
     
     //Print result to file
-    std::cout << evaluation << std::endl;
+    std::ofstream result;
+    result.open ("result.txt");
+    result << evaluation;
+    result.close();
     
     ground_truth.close();
     tracking_results.close();
