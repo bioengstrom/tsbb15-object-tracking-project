@@ -141,19 +141,20 @@ void evaluate(Evaluation &ev, std::vector<Object> &gt, std::vector<Object> &foun
                 auto it = ev.id_pairs.find(gt[i].objectID);
                 
                 //Identity switch!
-                if( it != ev.id_pairs.end() && it->second != gt[i].objectID) {
+                if( it != ev.id_pairs.end() && it->second != largest_found_intsect->objectID) {
                     ev.id_switches++;
-                    it->second = gt[i].objectID;
+                    it->second = largest_found_intsect->objectID;
                 }
                 else {
                     // True positive!
                     
-                    //A new object has entered the video
+                    //A new object has entered the video, add it to the pairs
                     if (it == ev.id_pairs.end()) {
                         ev.id_pairs.insert(std::pair<int,int>(gt[i].objectID, largest_found_intsect->objectID));
                     }
                     ev.true_positives++;
                     ev.total_tp_overlap += overlap;
+                    //Remove the found pair from the vectors
                     found.erase(largest_found_intsect);
                     gt.erase(std::next(gt.begin(), i));
                 }
