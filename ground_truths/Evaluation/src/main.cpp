@@ -7,6 +7,7 @@
 //
 
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <sstream>
 #include <vector>
@@ -78,6 +79,35 @@ std::istream& operator>> (std::istream &in, std::vector<Object> &objects)
     return in;
 }
 
+std::ostream& operator<< (std::ostream &out, Evaluation &ev)
+{
+    out << std::left << std::setw(30) << "True positives:";
+    out << ev.true_positives << std::endl;
+    out << std::left << std::setw(30) << "False positives:";
+    out << ev.false_positives << std::endl;
+    out << std::left << std::setw(30) << "False negatives:";
+    out << ev.false_negatives << std::endl << std::endl;;
+    
+    //Precision: Defined as sum(TP)/(sum(TP) + sum(FP)).
+    out << std::left << std::setw(30) << "Precision:";
+    out << static_cast<double>(ev.true_positives)/static_cast<double>(ev.true_positives + ev.false_positives) << std::endl;
+    
+    //Recall: Defined as sum(TP)/(sum(TP) + sum(FN)).
+    out << std::left << std::setw(30) << "Recall:";
+    out << static_cast<double>(ev.true_positives)/static_cast<double>(ev.true_positives + ev.false_negatives) << std::endl;
+    
+    //Average TP overlap: Computed only over the true positives (with correct ID).
+    out << std::left << std::setw(30) << "Average TP overlap:";
+    out << static_cast<double>(ev.total_tp_overlap)/static_cast<double>(ev.true_positives) << std::endl;
+    
+    //Average TP overlap: Computed only over the true positives (with correct ID).
+    out << std::left << std::setw(30) << "Identity switches:";
+    out << "-" << std::endl;
+    
+    
+    return out;
+}
+
 //Evaluate true positives, false positives & false negatives
 void evaluate(Evaluation &ev, std::vector<Object> &gt, std::vector<Object> &found) {
     
@@ -86,35 +116,45 @@ void evaluate(Evaluation &ev, std::vector<Object> &gt, std::vector<Object> &foun
      A detection that has at least 20% overlap with the associated ground truth bounding box.
      Overlap aka Jaccard index: Intersection over union (IoU)
     */
-    std::vector<Object>::iterator largest_intersection;
+    std::vector<Object>::iterator largest_found_intsect;
+    int i{};
     if(found.size() > 0) {
-        for (int i = 0; i < gt.size(); i++) {
+        while(gt.size() > i) {
             //Find the object that has the largest intersection with the ground truth
-            largest_intersection = std::max_element(found.begin(), found.end(), [&](Object& first, Object& second){
+            largest_found_intsect = std::max_element(found.begin(), found.end(), [&](Object& first, Object& second){
                 return (gt[i].rect & first.rect).area() < (gt[i].rect & second.rect).area();
             });
           
             //Calculate overlap - intersection / union
-            double the_intersection = (gt[i].rect & largest_intersection->rect).area();
-            double the_union = gt[i].rect.area() + largest_intersection->rect.area() - the_intersection;
+            double the_intersection = (gt[i].rect & largest_found_intsect->rect).area();
+            double the_union = gt[i].rect.area() + largest_found_intsect->rect.area() - the_intersection;
             double overlap = the_intersection / the_union;
             
             //If overlap is larger than 20% we have a true positive! Remove the objects from
             //each vector
             if(overlap > 0.2) {
                 ev.true_positives++;
-                //found.erase(std::remove(found.begin(), found.end(), largest_intersection), found.end());
-                //gt.erase(std::remove(gt.begin(), gt.end(), std::next(gt.begin(),i), gt.end());
+                ev.total_tp_overlap += overlap;
+                found.erase(largest_found_intsect);
+                gt.erase(gt.begin());
             }
+            else {
+                i++;
+            }
+            
         }
     }
     
+    /*
+     False positives
+     The number of found objects that have no correspondance in the ground truth.
+     */
+    ev.false_positives += found.size();
     
-    //False positives
-    
-    
-    //False negatives
-    
+    /*False negatives
+     The number of ground truth objects that are not found.
+     */
+    ev.false_negatives += gt.size();
     
 }
 
@@ -172,6 +212,7 @@ int main(int argc, const char * argv[]) {
         found_obj.clear();
     }
     
+    std::cout << evaluation << std::endl;
     
 
     ground_truth.close();
