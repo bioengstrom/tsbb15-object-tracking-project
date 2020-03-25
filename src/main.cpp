@@ -59,21 +59,20 @@ int main() {
     cv::Ptr<cv::MultiTracker> multiTracker = cv::MultiTracker::create();
     std::vector<cv::Rect> bboxes;
     std::vector<cv::Scalar> colors;
-    //Random generator for generating random colors
-    cv::RNG rng(0);
     
     int enough_feature_points = 5;
     bool feature_points_found = false;
     bool tracking_started = false;
     float fps{};
-    
+    //Random generator for generating random colors
+    cv::RNG rng(0);
+
     /**********************************************************************
               MAINTAIN OBJECT IDENTITY
     
     ************************************************************************/
     
-    std::vector<cv::Rect> unique_objects;
-    std::vector<cv::Scalar> unique_colors;
+    std::vector<unique_object> unique_objects;
     
     /**************************************************************************
             SLIDER FOR ADJUSTING THRESHOLD
@@ -113,77 +112,17 @@ int main() {
         ***************************************************************************/
         //frame, background, ksize for median filter, threshold, erosion size, dilation size
         cv::Mat bg_mask = medianBackgroundModelling(frame, background, 3, threshold, erosion_size, dilation_size);
+        cv::Mat drawing;
+        std::vector<cv::Rect> boundRect;
         
-        /**************************************************************************
-                   BOUNDING BOXES
-            source: https://docs.opencv.org/2.4/doc/tutorials/imgproc/shapedescriptors/bounding_rects_circles/bounding_rects_circles.html
-        ***************************************************************************/
+        drawBoundingBoxes(frame, bg_mask, drawing, boundRect);
         
-        std::vector<std::vector<cv::Point> > contours;
-        std::vector<cv::Vec4i> hierarchy;
-        
-        // Find contours
-        cv::findContours( bg_mask, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0) );
-        
-        // Approximate contours to polygons + get bounding rects and circles
-        std::vector<std::vector<cv::Point> > contours_poly( contours.size() );
-        std::vector<cv::Rect> boundRect( contours.size() );
-        //std::vector<cv::Point2f>center( contours.size() );
-        //std::vector<float>radius( contours.size() );
-
-        for( int i = 0; i < contours.size(); i++ )
-       {
-         approxPolyDP( cv::Mat(contours[i]), contours_poly[i], 3, true );
-         boundRect[i] = boundingRect( cv::Mat(contours_poly[i]) );
-         //minEnclosingCircle( (cv::Mat)contours_poly[i], center[i], radius[i] );
-       }
-
-        // Draw polygonal contour + bonding rects + circles
-        cv::Mat drawing = cv::Mat::zeros( bg_mask.size(), CV_8UC3 );
-         
-        for( int i = 0; i< contours.size(); i++ )
-       {
-         cv::Scalar color = cv::Scalar( 0, 255, 255);
-         //drawContours( bg_mask, contours_poly, i, color, 1, 8, std::vector<cv::Vec4i>(), 0, cv::Point() );
-         rectangle( frame, boundRect[i].tl(), boundRect[i].br(), color, 2, 8, 0 );
-         //circle( drawing, center[i], (int)radius[i], color, 2, 8, 0 );
-       }
          
         /**************************************************************************
                    DETECT OVERLAP
         ***************************************************************************/
         
-        int overlap_area{0};
-        int new_overlap{0};
-        bool found_obj{false};
-    
-        //Greedy algorithm, assign the rectangle with most overlap to the unique object
-        for(int i{0}; i < boundRect.size(); i++) {
-            for(int j{0}; j < unique_objects.size(); j++) {
-                //Check intersection between areas and assign bounding rectangle to last rectangle
-                new_overlap = (unique_objects[j] & boundRect[i]).area();
-                if(overlap_area < new_overlap) {
-                    //std::cout << "Found overlap" << std::endl;
-                    overlap_area = new_overlap;
-                    //Update to new position
-                    unique_objects[j] = cv::Rect{boundRect[i]};
-                    found_obj = true;
-                }
-            }
-            if(!found_obj) {
-                //std::cout << "Added new object" << std::endl;
-                unique_objects.push_back(cv::Rect{boundRect[i]});
-                unique_colors.push_back(cv::Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255)));
-            }
-            else {
-                //std::cout << "Assigned to object" << std::endl;
-            }
-            found_obj = false;
-            overlap_area = 0;
-            
-        }
-        //std::cout << "Found objects: " << unique_objects.size() << std::endl << std::endl;
-        
+        matchUniqueObjToDetections(boundRect, unique_objects);
         //If no moving objects are found, print the frame number
         if(unique_objects.size() == 0) {
             myfile << frameNumber << std::endl;
@@ -191,8 +130,8 @@ int main() {
         // Draw unique object bonding rects
         for( int i = 0; i< unique_objects.size(); i++ )
         {
-             rectangle( drawing, unique_objects[i].tl(), unique_objects[i].br(), unique_colors[i], 2, 8, 0 );
-             printEvalutationToCSV(myfile, frameNumber, i, unique_objects[i].x , unique_objects[i].y, unique_objects[i].width, unique_objects[i].height);
+             rectangle( drawing, unique_objects[i].rect.tl(), unique_objects[i].rect.br(), unique_objects[i].color, 2, 8, 0 );
+             printEvalutationToCSV(myfile, frameNumber, i, unique_objects[i].rect.x , unique_objects[i].rect.y, unique_objects[i].rect.width, unique_objects[i].rect.height);
         }
         
         /**************************************************************************
@@ -272,7 +211,6 @@ int main() {
             {
                 rectangle(tracking_frame, multiTracker->getObjects()[i], colors[i], 2, 1);
             }
-            
         }
         
         // Display tracker type on frame
