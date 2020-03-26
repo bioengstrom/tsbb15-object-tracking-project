@@ -119,7 +119,7 @@ void isForeground(double x, int row, int col, std::vector<cv::Vec3d*>& mix_comps
             variables.push_back({ quotient_vec[i], (*mix_comps[i])[WEIGHT], (*mix_comps[i])[MY], (*mix_comps[i])[VAR]});
         }
         std::sort(variables.begin(), variables.end(),
-            [](const SortStruct i, const SortStruct j) {return i.quotient > j.quotient; });
+            [](const SortStruct i, const SortStruct j) {return i.quotient < j.quotient; });
 
         for (int i = 0; i < mix_comps.size(); i++) {
             (*mix_comps[i])[WEIGHT] = variables[i].w;
@@ -213,8 +213,15 @@ int main() {
 
     int K = 3;
     for(int k = 0; k < K; k++) {
+        //variableMatrices.push_back(cv::Mat(frame.rows, frame.cols, CV_64FC3, cv::Scalar(rand() % 255 + 1, var, w)));
         variableMatrices.push_back(cv::Mat(frame.rows, frame.cols, CV_64FC3, cv::Scalar(rand() % 255 + 1, var, w)));
+        
     }
+    
+    variableMatrices[0].forEach<cv::Vec3d>([&](cv::Vec3d& pixel, const int position[]) -> void {
+        pixel[0] = frame.at<double>(position[0], position[1]);
+
+    });
     
     while (1) {
 
