@@ -5,7 +5,7 @@
      source: https://docs.opencv.org/2.4/doc/tutorials/imgproc/shapedescriptors/bounding_rects_circles/bounding_rects_circles.html
  ***************************************************************************/
  
-void findBoundingBoxes(cv::Mat& bg_mask, std::vector<cv::Rect>& boundRect) {
+void findBoundingBoxes(cv::Mat& bg_mask, std::vector<cv::Rect>& boundRect, int minRectArea) {
      
      std::vector<std::vector<cv::Point> > contours;
      std::vector<cv::Vec4i> hierarchy;
@@ -19,7 +19,9 @@ void findBoundingBoxes(cv::Mat& bg_mask, std::vector<cv::Rect>& boundRect) {
      for( int i = 0; i < contours.size(); i++ )
     {
       approxPolyDP( cv::Mat(contours[i]), contours_poly[i], 3, true );
-      boundRect.push_back( boundingRect( cv::Mat(contours_poly[i]) ));
+      if (boundingRect(cv::Mat(contours_poly[i])).area() > minRectArea) {
+          boundRect.push_back(boundingRect(cv::Mat(contours_poly[i])));
+      }
       //minEnclosingCircle( (cv::Mat)contours_poly[i], center[i], radius[i] );
     }
 }

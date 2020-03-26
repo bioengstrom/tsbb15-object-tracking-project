@@ -94,7 +94,7 @@ int main() {
     float fps{}; */
     //Random generator for generating random colors
     cv::RNG rng(0);
-
+    int minRectArea = 150;
     /**********************************************************************
               MAINTAIN OBJECT IDENTITY
 
@@ -148,7 +148,7 @@ int main() {
 
 
         cv::Mat ellips1 = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(2,2));
-        cv::Mat ellips2 = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5,5));
+        cv::Mat ellips2 = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(1,1));
 
         cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_OPEN, ellips1);
         //cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_CLOSE, ellips2);
@@ -168,7 +168,7 @@ int main() {
         cv::Mat drawing = cv::Mat::zeros( bg_mask.size(), CV_8UC3 );
         std::vector<cv::Rect> boundRect;
 
-        findBoundingBoxes(bg_mask, boundRect);
+        findBoundingBoxes(bg_mask, boundRect, minRectArea);
         drawRectangles(tracking_frame, cv::Scalar( 0, 0, 255), boundRect);
 
 
