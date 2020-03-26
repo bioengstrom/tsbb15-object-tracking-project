@@ -34,7 +34,7 @@ int main() {
     }
     cv::Mat frame;
     inputVideo >> frame;
-    cv::Mat tracking_frame = frame.clone();
+    cv::Mat background = frame.clone();
     
     /**************************************************************************
                     EVALUATION
@@ -92,10 +92,10 @@ int main() {
         /**************************************************************************
                         BACKGROUND FRAME
         ***************************************************************************/
-        std::string background_img{"Walk1000.jpg"};
-        cv::Mat background = cv::imread (background_img ,cv::IMREAD_UNCHANGED);
+        //std::string background_img{"Walk1000.jpg"};
+        //cv::Mat background = cv::imread (background_img ,cv::IMREAD_UNCHANGED);
         if(background.empty()) {
-            std::cout << "Error! Could not find background image " << background_img << std::endl;
+            std::cout << "Error! Could not find background image." << std::endl;
             return 1;
         }
         /**************************************************************************
@@ -106,7 +106,7 @@ int main() {
         if(frame.empty()) {
             break;
         }
-        tracking_frame = frame.clone();
+        cv::Mat tracking_frame = frame.clone();
         /**************************************************************************
                    BACKGROUND MODELLING
         ***************************************************************************/
@@ -126,14 +126,6 @@ int main() {
         matchUniqueObjToDetections(boundRect, unique_objects);
         printFrameToCSV(myfile, frameNumber, false, unique_objects);
         drawUniqueObjects(drawing, unique_objects);
-        
-        /**************************************************************************
-                    OCCLUSION MANAGEMENT
-        ***************************************************************************/
-        
-        
-        
-        
         
         /**************************************************************************
                     HARRIS FEATURE POINTS
