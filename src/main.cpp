@@ -107,12 +107,12 @@ int main() {
     ***************************************************************************/
     int threshold{85};
     int threshold_slider_max{255};
-    int erosion_size{1};
-    int dilation_size{9};
+    int closing_size{1};
+    int opening_size{1};
     cv::namedWindow("Image", cv::WINDOW_NORMAL);
     cv::createTrackbar("Threshold", "Image", &threshold, threshold_slider_max);
-    cv::createTrackbar("Erosion", "Image", &erosion_size, 10);
-    cv::createTrackbar("Dilation", "Image", &dilation_size, 10);
+    cv::createTrackbar("Closing size", "Image", &closing_size, 10);
+    cv::createTrackbar("Opening size", "Image", &opening_size, 10);
 
 
     while(1) {
@@ -122,10 +122,10 @@ int main() {
         ***************************************************************************/
         //std::string background_img{"Walk1000.jpg"};
         //cv::Mat background = cv::imread (background_img ,cv::IMREAD_UNCHANGED);
-        if(background.empty()) {
+        /*if(background.empty()) {
             std::cout << "Error! Could not find background image." << std::endl;
             return 1;
-        }
+        }*/
         /**************************************************************************
                         LOAD FRAMES
         ***************************************************************************/
@@ -141,25 +141,28 @@ int main() {
         // GMM från master
         cv::Mat bg_mask;
         bg_mask = mixtureBackgroundModelling(frame, variableMatrices, background_model,
-            w, var, K, alpha, T, lambda, erosion_size, dilation_size);
+            w, var, K, alpha, T, lambda, closing_size, opening_size);
 
         //bg_mask = medianFiltering(frame, m);
-        //bg_mask = medianFiltering(frame, m);
 
+        cv::Mat closing_small = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(2, 2));
+        cv::Mat opening_small = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(1, 1));
+        cv::Mat closing = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(closing_size, closing_size));
+        cv::Mat opening = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(opening_size,opening_size));
 
-        cv::Mat ellips1 = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(2,2));
-        cv::Mat ellips2 = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(1,1));
+        cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_OPEN, opening_small);
+        cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_CLOSE, closing_small);
 
-        cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_OPEN, ellips1);
-        //cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_CLOSE, ellips2);
+        cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_CLOSE, closing);
+        cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_OPEN, opening);
 
-        //cv::dilate(frame, frame, dil_element);
+        //cv::dilate(bg_mask, bg_mask, ellips2);
 
         //cv::erode(frame, frame, er_element);
 
-        //cv::Mat kernel1 = cv::Mat::ones(erosion_size, erosion_size, CV_8U);
+        //cv::Mat kernel1 = cv::Mat::ones(closing_size, closing_size, CV_8U);
         //cv::morphologyEx(frame, frame, cv::MORPH_OPEN, kernel1);
-        //cv::Mat kernel2 = cv::Mat::ones(dilation_size, dilation_size, CV_8U);
+        //cv::Mat kernel2 = cv::Mat::ones(opening_size, opening_size, CV_8U);
         //cv::morphologyEx(frame, frame, cv::MORPH_CLOSE, kernel2);
 
         // Från tracking:
