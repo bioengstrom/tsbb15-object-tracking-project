@@ -93,15 +93,15 @@ std::ostream& operator<< (std::ostream &out, Evaluation &ev)
     
     //Precision: Defined as sum(TP)/(sum(TP) + sum(FP)).
     out << std::left << std::setw(30) << "Precision:";
-    out << static_cast<double>(ev.true_positives)/static_cast<double>(ev.true_positives + ev.false_positives) << std::endl;
+    out << std::setprecision(2) << static_cast<double>(ev.true_positives)/static_cast<double>(ev.true_positives + ev.false_positives) << std::endl;
     
     //Recall: Defined as sum(TP)/(sum(TP) + sum(FN)).
     out << std::left << std::setw(30) << "Recall:";
-    out << static_cast<double>(ev.true_positives)/static_cast<double>(ev.true_positives + ev.false_negatives) << std::endl;
+    out << std::setprecision(2) << static_cast<double>(ev.true_positives)/static_cast<double>(ev.true_positives + ev.false_negatives) << std::endl;
     
     //Average TP overlap: Computed only over the true positives (with correct ID).
     out << std::left << std::setw(30) << "Average TP overlap:";
-    out << static_cast<double>(ev.total_tp_overlap)/static_cast<double>(ev.true_positives) << std::endl;
+    out << std::setprecision(2) << static_cast<double>(ev.total_tp_overlap)/static_cast<double>(ev.true_positives) << std::endl;
     
     //Average TP overlap: Computed only over the true positives (with correct ID).
     out << std::left << std::setw(30) << "Identity switches:";
