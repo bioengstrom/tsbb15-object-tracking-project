@@ -1,16 +1,25 @@
 import xml.etree.ElementTree as ET
 import csv
 import pandas as pd
+import sys
 
 '''
 This python script creates a csv file with the data from a ground truth xml file:
 framenumber, objectID, ul_x, ul_y, width, height
+It takes two input arguments:
+1) xml file to open and parse
+2) csv file to write to
 '''
-tree = ET.parse("GroundTruths_xml/wk1gt.xml")
+
+assert(len(sys.argv) == 3)
+
+args = sys.argv
+
+tree = ET.parse(args[1])
 root = tree.getroot()
 
 # open a file for writing
-ground_truth = open('GroundTruths_csv/wk1gt.csv', 'w')
+ground_truth = open(args[2], 'w')
 
 # create the csv writer object
 csvwriter = csv.writer(ground_truth)
