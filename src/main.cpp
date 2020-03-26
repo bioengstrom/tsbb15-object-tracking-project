@@ -57,7 +57,7 @@ struct SortStruct
 };
 
 
-void isForeground(double x, int row, int col, std::vector<cv::Vec3d*>& mix_comps, double w_init, cv::Mat& B, int K = 5, double alpha = 0.002, double T = 0.8, double var_init = 10.0)  {
+void isForeground(double x, int row, int col, std::vector<cv::Vec3d*>& mix_comps, double w_init, cv::Mat& B, int K, double alpha = 0.002, double T = 0.8, double var_init = 10.0)  {
 
     std::vector<SortStruct> variables{};
     const double lambda = 2.5;
@@ -142,7 +142,7 @@ void isForeground(double x, int row, int col, std::vector<cv::Vec3d*>& mix_comps
 }
 
 
-void mixtureBackgroundModelling(cv::Mat &frame, std::vector<cv::Mat>& variableMatrices, cv::Mat &background_model, double w_init, double var_init, int K = 3, double alpha = 0.002, double T = 0.8) {
+void mixtureBackgroundModelling(cv::Mat &frame, std::vector<cv::Mat>& variableMatrices, cv::Mat &background_model, double w_init, double var_init, int K, double alpha = 0.002, double T = 0.8) {
 
     cv::cvtColor(frame, frame, cv::COLOR_BGR2GRAY);
    // std::cout << frame.type() << std::endl;
@@ -207,9 +207,9 @@ int main() {
     
     std::vector<cv::Mat> variableMatrices;
   
-    double var = 30.0;
-    double w = 0.05;
-    double alpha = 0.005;
+    double var = 100.0;
+    double w = 0.002;
+    double alpha = 0.002;
 
     int K = 3;
     for(int k = 0; k < K; k++) {
