@@ -42,3 +42,10 @@ int unique_object::counter = 0;
 cv::Scalar unique_object::getRandomColor() {
     return cv::Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255));
 }
+
+void drawRectangles(cv::Mat& img, cv::Scalar color, std::vector<cv::Rect>& rects) {
+    
+    for( int i = 0; i< rects.size(); i++ ) {
+         rectangle( img, rects[i].tl(), rects[i].br(), color, 2, 8, 0 );
+    }
+}

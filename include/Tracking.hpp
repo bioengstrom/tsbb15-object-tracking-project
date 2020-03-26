@@ -11,7 +11,7 @@
 #include <iterator>
 #include "Utilities.hpp"
 
-void drawBoundingBoxes(cv::Mat& frame, cv::Mat& bg_mask, cv::Mat& drawing, std::vector<cv::Rect>& boundRect);
+void findBoundingBoxes(cv::Mat& bg_mask, std::vector<cv::Rect>& boundRect) ;
 void matchUniqueObjToDetections(std::vector<cv::Rect>& boundRect, std::vector<unique_object>& unique_objects);
 
 #endif /* Tracking_hpp */

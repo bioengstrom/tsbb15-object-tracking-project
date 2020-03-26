@@ -28,12 +28,14 @@ public:
     
 };
 
-
 double jaccardIndex(cv::Rect& first, cv::Rect& second);
 
 cv::Mat display(cv::Mat img);
 
 void printObjToCSV(std::ostream& os, int objectID, int ul_x, int ul_y, int width, int height);
 void printFrameToCSV(std::ostream& os, int frameNumber, bool printInvisible, std::vector<unique_object>& unique_objects);
+
+void drawRectangles(cv::Mat& img, cv::Scalar color, std::vector<cv::Rect>& rects);
+
 
 #endif /* Utilities_hpp */

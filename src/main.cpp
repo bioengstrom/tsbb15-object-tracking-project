@@ -112,10 +112,12 @@ int main() {
         ***************************************************************************/
         //frame, background, ksize for median filter, threshold, erosion size, dilation size
         cv::Mat bg_mask = medianBackgroundModelling(frame, background, 3, threshold, erosion_size, dilation_size);
-        cv::Mat drawing;
+        // Draw bonding rects
+        cv::Mat drawing = cv::Mat::zeros( bg_mask.size(), CV_8UC3 );
         std::vector<cv::Rect> boundRect;
         
-        drawBoundingBoxes(tracking_frame, bg_mask, drawing, boundRect);
+        findBoundingBoxes(bg_mask, boundRect);
+        drawRectangles(tracking_frame, cv::Scalar( 0, 0, 255), boundRect);
         
          
         /**************************************************************************
@@ -228,16 +230,19 @@ int main() {
         ***************************************************************************/
         //Display the threshold as text on the mask
         //(Mat& img, const string& text, Point org, int fontFace, double fontScale, Scalar color, int thickness=1, int lineType=8, bool bottomLeftOrigin=false )
-        cv::putText(frame, "Original Frame", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255),2);
-        cv::putText(tracking_frame, "Bounding boxes", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255),2);
+        cv::Scalar black = cv::Scalar(0, 0, 0);
+        cv::Scalar white = cv::Scalar(255, 255, 255);
+        
+        cv::putText(frame, "Original Frame", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, black,2);
+        cv::putText(tracking_frame, "Bounding boxes", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, black, 2);
         cv::putText(bg_mask, "Background model", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255),2);
-        cv::putText(bg_mask, "Threshold: " + std::to_string(threshold), cv::Point(10,60), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255),2);
+        cv::putText(bg_mask, "Threshold: " + std::to_string(threshold), cv::Point(10,60), cv::FONT_HERSHEY_SIMPLEX, 0.7, white,2);
         //cv::putText(displayFeatures, "Harris feature points" , cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255),2);
         std::string uniqueObjCounter = std::to_string(unique_objects.size() > 0 ? unique_objects[0].counter : 0);
-        cv::putText(drawing, "Total dectected objects: " + uniqueObjCounter, cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255),2);
-        cv::putText(drawing, "Visible objects: " + std::to_string(unique_objects.size()), cv::Point(10,60), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255),2);
+        cv::putText(drawing, "Total dectected objects: " + uniqueObjCounter, cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, white,2);
+        cv::putText(drawing, "Visible objects: " + std::to_string(unique_objects.size()), cv::Point(10,60), cv::FONT_HERSHEY_SIMPLEX, 0.7, white,2);
         //cv::putText(harris, "Harris feature points" , cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 0, 0),2);
-        ShowFourImages("Image", frame, tracking_frame, display(bg_mask), drawing);
+        ShowFourImages("Image", frame, display(bg_mask), tracking_frame, drawing);
         //Increment frame number
         frameNumber++;
         //Break if press ESC
