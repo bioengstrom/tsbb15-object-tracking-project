@@ -23,7 +23,7 @@ int main() {
                     OPEN VIDEO
     ***************************************************************************/
     //Name of video
-    std::string source{"Walk1"};
+    std::string source{"Meet_Crowd"};
     std::string mov_format{"mpg"};
 
     cv::VideoCapture inputVideo(source + "." + mov_format); // Open input
@@ -39,6 +39,7 @@ int main() {
 
     // Nån trackinggrej från Tracking
     cv::Mat tracking_frame = frame.clone();
+    cv::Mat background = frame.clone();
 
     /**************************************************************************
                     GMM PARAMETER INITIALIZATION
@@ -280,13 +281,13 @@ int main() {
         cv::Scalar white = cv::Scalar(255, 255, 255);
 
         cv::putText(frame, "Original Frame", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, black,2);
-        cv::putText(tracking_frame, "Bounding boxes", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, black, 2);
+        cv::putText(tracking_frame, "Detections", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, black, 2);
         cv::putText(bg_mask, "Background model", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255),2);
         cv::putText(bg_mask, "Threshold: " + std::to_string(threshold), cv::Point(10,60), cv::FONT_HERSHEY_SIMPLEX, 0.7, white,2);
         //cv::putText(displayFeatures, "Harris feature points" , cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255),2);
-        std::string uniqueObjCounter = std::to_string(unique_objects.size() > 0 ? unique_objects[0].counter : 0);
-        cv::putText(drawing, "Total dectected objects: " + uniqueObjCounter, cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, white,2);
-        cv::putText(drawing, "Visible objects: " + std::to_string(unique_objects.size()), cv::Point(10,60), cv::FONT_HERSHEY_SIMPLEX, 0.7, white,2);
+        std::string uniqueObjCounter = unique_objects.size() > 0 ? std::to_string(unique_objects[0].counter) : "-";
+        cv::putText(drawing, "Total unique objects: " + uniqueObjCounter, cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, white,2);
+        cv::putText(drawing, "Current unique objects: " + std::to_string(unique_objects.size()), cv::Point(10,60), cv::FONT_HERSHEY_SIMPLEX, 0.7, white,2);
         //cv::putText(harris, "Harris feature points" , cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 0, 0),2);
         ShowFourImages("Image", frame, display(bg_mask), tracking_frame, drawing);
         //Increment frame number

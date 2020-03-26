@@ -60,6 +60,8 @@ void drawUniqueObjects(cv::Mat& img, std::vector<unique_object>& unique_objects)
     // Draw unique object bonding rects
     for (unique_object obj : unique_objects)
     {
-         rectangle( img, obj.rect.tl(), obj.rect.br(), obj.color, 2, 8, 0 );
+        if(obj.frames_invisible == 0) {
+            rectangle( img, obj.rect.tl(), obj.rect.br(), obj.color, 2, 8, 0 );
+        }
     }
 }
