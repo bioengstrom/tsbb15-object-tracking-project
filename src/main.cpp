@@ -144,6 +144,7 @@ int main() {
             w, var, K, alpha, T, lambda, erosion_size, dilation_size);
 
         //bg_mask = medianFiltering(frame, m);
+        //bg_mask = medianFiltering(frame, m);
 
 
         cv::Mat ellips1 = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(2,2));
