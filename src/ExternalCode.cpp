@@ -82,7 +82,7 @@ void cornerHarris_demo(cv::Mat &src, cv::Mat &src_gray, cv::Mat &result)
     int apertureSize = 3;
     double k = 0.04;
     int thresh = 200;
-    int max_thresh = 255;
+    //int max_thresh = 255;
     
     cv::Mat dst = cv::Mat::zeros( src.size(), CV_32FC1 );
     cornerHarris( src_gray, dst, blockSize, apertureSize, k );

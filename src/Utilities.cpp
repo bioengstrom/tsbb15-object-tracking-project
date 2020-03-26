@@ -45,7 +45,16 @@ cv::Scalar unique_object::getRandomColor() {
 
 void drawRectangles(cv::Mat& img, cv::Scalar color, std::vector<cv::Rect>& rects) {
     
-    for( int i = 0; i< rects.size(); i++ ) {
-         rectangle( img, rects[i].tl(), rects[i].br(), color, 2, 8, 0 );
+    for (cv::Rect rect : rects) {
+        rectangle( img, rect.tl(), rect.br(), color, 2, 8, 0 );
+    }
+}
+
+void drawUniqueObjects(cv::Mat& img, std::vector<unique_object>& unique_objects) {
+    
+    // Draw unique object bonding rects
+    for (unique_object obj : unique_objects)
+    {
+         rectangle( img, obj.rect.tl(), obj.rect.br(), obj.color, 2, 8, 0 );
     }
 }

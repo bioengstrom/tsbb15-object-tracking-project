@@ -36,6 +36,7 @@ void printObjToCSV(std::ostream& os, int objectID, int ul_x, int ul_y, int width
 void printFrameToCSV(std::ostream& os, int frameNumber, bool printInvisible, std::vector<unique_object>& unique_objects);
 
 void drawRectangles(cv::Mat& img, cv::Scalar color, std::vector<cv::Rect>& rects);
+void drawUniqueObjects(cv::Mat& img, std::vector<unique_object>& unique_objects);
 
 
 #endif /* Utilities_hpp */
