@@ -111,6 +111,13 @@ std::ostream& operator<< (std::ostream &out, Evaluation &ev)
     return out;
 }
 
+//Intersection over union
+double jaccardIndex(cv::Rect& first, cv::Rect& second) {
+    double the_intersection = (first & second).area();
+    double the_union = first.area() + second.area() - the_intersection;
+    return the_intersection / the_union;
+}
+
 //Evaluate true positives, false positives & false negatives
 void evaluate(Evaluation &ev, std::vector<Object> &gt, std::vector<Object> &found) {
     
@@ -125,13 +132,15 @@ void evaluate(Evaluation &ev, std::vector<Object> &gt, std::vector<Object> &foun
         while(gt.size() > i) {
             //Find the object that has the largest intersection with the ground truth
             largest_found_intsect = std::max_element(found.begin(), found.end(), [&](Object& first, Object& second){
-                return (gt[i].rect & first.rect).area() < (gt[i].rect & second.rect).area();
+                //return (gt[i].rect & first.rect).area() < (gt[i].rect & second.rect).area();
+                return jaccardIndex(gt[i], first.rect) < jaccardIndex(gt[i].rect, second.rect);
             });
           
             //Calculate overlap - intersection / union
-            double the_intersection = (gt[i].rect & largest_found_intsect->rect).area();
+            /*double the_intersection = (gt[i].rect & largest_found_intsect->rect).area();
             double the_union = gt[i].rect.area() + largest_found_intsect->rect.area() - the_intersection;
-            double overlap = the_intersection / the_union;
+            double overlap = the_intersection / the_union;*/
+            double overlap = jaccardIndex(gt[i].rect, largest_found_intsect->rect);
             
             //If overlap is larger than 20% we have a true positive! Remove the objects from
             //each vector
