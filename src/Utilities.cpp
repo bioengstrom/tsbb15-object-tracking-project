@@ -7,7 +7,7 @@ cv::Mat display(cv::Mat img) {
 }
 
 //Intersection over union
-double jaccardIndex(cv::Rect& first, cv::Rect& second) {
+double jaccardIndex(const cv::Rect& first, const cv::Rect& second) {
     double the_intersection = (first & second).area();
     double the_union = first.area() + second.area() - the_intersection;
     return the_intersection / the_union;
@@ -41,6 +41,11 @@ int unique_object::counter = 0;
 
 cv::Scalar unique_object::getRandomColor() {
     return cv::Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255));
+}
+
+cv::Rect unique_object::predRect() {
+    cv::Point predTopLeft = rect.tl() + static_cast<cv::Point>(delta);
+    return cv::Rect(predTopLeft, predSize);
 }
 
 void drawRectangles(cv::Mat& img, cv::Scalar color, std::vector<cv::Rect>& rects) {

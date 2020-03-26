@@ -14,21 +14,23 @@ public:
     static cv::RNG rng;
     static int counter;
     unique_object(cv::Rect rect_, int frames_invisible_ = 0,bool overlap_found_ = false)
-    : rect(rect_), frames_invisible(frames_invisible_), overlap_found(overlap_found_) {
+    : rect(rect_), predSize(rect_.size()), frames_invisible(frames_invisible_), overlap_found(overlap_found_) {
         color = getRandomColor();
         ID = counter;
         counter++;
     }
     cv::Rect rect{};
+    cv::Size predSize{};
+    cv::Vec2i delta{};
     int ID{};
     int frames_invisible{};
     bool overlap_found{};
     cv::Scalar color{};
     cv::Scalar getRandomColor();
-    
+    cv::Rect predRect();
 };
 
-double jaccardIndex(cv::Rect& first, cv::Rect& second);
+double jaccardIndex(const cv::Rect& first, const cv::Rect& second);
 
 cv::Mat display(cv::Mat img);
 
