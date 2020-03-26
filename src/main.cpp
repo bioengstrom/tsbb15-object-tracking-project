@@ -54,7 +54,7 @@ int main() {
     
     ************************************************************************/
     //Create single tracker
-    cv::Ptr<cv::Tracker> tracker = cv::TrackerBoosting::create();
+  /*  cv::Ptr<cv::Tracker> tracker = cv::TrackerBoosting::create();
     // Create multitracker
     cv::Ptr<cv::MultiTracker> multiTracker = cv::MultiTracker::create();
     std::vector<cv::Rect> bboxes;
@@ -63,7 +63,7 @@ int main() {
     int enough_feature_points = 5;
     bool feature_points_found = false;
     bool tracking_started = false;
-    float fps{};
+    float fps{}; */
     //Random generator for generating random colors
     cv::RNG rng(0);
 
@@ -115,24 +115,31 @@ int main() {
         cv::Mat drawing;
         std::vector<cv::Rect> boundRect;
         
-        drawBoundingBoxes(frame, bg_mask, drawing, boundRect);
+        drawBoundingBoxes(tracking_frame, bg_mask, drawing, boundRect);
         
          
         /**************************************************************************
                    DETECT OVERLAP
         ***************************************************************************/
-        
         matchUniqueObjToDetections(boundRect, unique_objects);
-        //If no moving objects are found, print the frame number
-        if(unique_objects.size() == 0) {
-            myfile << frameNumber << std::endl;
-        }
+        printFrameToCSV(myfile, frameNumber, unique_objects);
+       
         // Draw unique object bonding rects
         for( int i = 0; i< unique_objects.size(); i++ )
         {
              rectangle( drawing, unique_objects[i].rect.tl(), unique_objects[i].rect.br(), unique_objects[i].color, 2, 8, 0 );
-             printEvalutationToCSV(myfile, frameNumber, i, unique_objects[i].rect.x , unique_objects[i].rect.y, unique_objects[i].rect.width, unique_objects[i].rect.height);
         }
+        
+        
+        
+        
+        /**************************************************************************
+                    OCCLUSION MANAGEMENT
+        ***************************************************************************/
+        
+        
+        
+        
         
         /**************************************************************************
                     HARRIS FEATURE POINTS
@@ -140,9 +147,9 @@ int main() {
         //Find good feature points to track
         //Make grayscale
         //source, destination, color type
-        
+        /*
         cv::Mat grayFrame;
-        cv::cvtColor(frame, grayFrame, cv::COLOR_BGR2GRAY);
+        cv::cvtColor(frame, grayFrame, cv::COLOR_BGR2GRAY); */
         //cv::Mat harris;
         //cornerHarris_demo(frame, grayFrame, harris);
         
@@ -150,7 +157,7 @@ int main() {
         /**************************************************************************
                    FIND GOOD FEATURE POINTS
         ***************************************************************************/
-        cv::Mat displayFeatures = cv::Mat::zeros( frame.size(), CV_8UC1 );
+  /*      cv::Mat displayFeatures = cv::Mat::zeros( frame.size(), CV_8UC1 );
         
         //Keep looking for feature points if we dont have enough
         if(!feature_points_found) {
@@ -180,12 +187,12 @@ int main() {
                 std::cout << "Found enough feature points: " << bboxes.size() << std::endl;
                 feature_points_found = true;
             }
-        }
+        } */
         /**********************************************************************
                         TRACKING
         
         ************************************************************************/
-        else if (feature_points_found && !tracking_started){ //Initialize tracking the feature points
+    /*    else if (feature_points_found && !tracking_started){ //Initialize tracking the feature points
             std::cout << "Initializing multitracker..." << std::endl;
             
             // Initialize multitracker
@@ -216,20 +223,23 @@ int main() {
         // Display tracker type on frame
         cv::putText(tracking_frame, "Booster Tracker", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,255,255),2);
         // Display FPS on frame
-        cv::putText(tracking_frame, "FPS : " + std::to_string(int(fps)), cv::Point(10,60), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,255,255), 2);
+        cv::putText(tracking_frame, "FPS : " + std::to_string(int(fps)), cv::Point(10,60), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255,255,255), 2); */
         
         /**************************************************************************
                    DISPLAY IMAGES
         ***************************************************************************/
         //Display the threshold as text on the mask
         //(Mat& img, const string& text, Point org, int fontFace, double fontScale, Scalar color, int thickness=1, int lineType=8, bool bottomLeftOrigin=false )
-        cv::putText(frame, "Original Frame & bounding boxes", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255),2);
-        cv::putText(bg_mask, "Background modelling", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255),2);
+        cv::putText(frame, "Original Frame", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255),2);
+        cv::putText(tracking_frame, "Bounding boxes", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255),2);
+        cv::putText(bg_mask, "Background model", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255),2);
         cv::putText(bg_mask, "Threshold: " + std::to_string(threshold), cv::Point(10,60), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255),2);
         //cv::putText(displayFeatures, "Harris feature points" , cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255),2);
-        cv::putText(drawing, "Dectected objects: " + std::to_string(unique_objects.size()), cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255),2);
+        std::string uniqueObjCounter = std::to_string(unique_objects.size() > 0 ? unique_objects[0].counter : 0);
+        cv::putText(drawing, "Total dectected objects: " + uniqueObjCounter, cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255),2);
+        cv::putText(drawing, "Visible objects: " + std::to_string(unique_objects.size()), cv::Point(10,60), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255),2);
         //cv::putText(harris, "Harris feature points" , cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 0, 0),2);
-        ShowFourImages("Image", frame, display(bg_mask), drawing, tracking_frame);
+        ShowFourImages("Image", frame, tracking_frame, display(bg_mask), drawing);
         //Increment frame number
         frameNumber++;
         //Break if press ESC

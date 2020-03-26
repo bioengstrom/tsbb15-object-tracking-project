@@ -12,12 +12,16 @@
 class unique_object  {
 public:
     static cv::RNG rng;
-    unique_object(cv::Rect rect_, int frames_unvisible_ = 0,bool overlap_found_ = false)
-    : rect(rect_), frames_unvisible(frames_unvisible_), overlap_found(overlap_found_) {
+    static int counter;
+    unique_object(cv::Rect rect_, int frames_invisible_ = 0,bool overlap_found_ = false)
+    : rect(rect_), frames_invisible(frames_invisible_), overlap_found(overlap_found_) {
         color = getRandomColor();
+        ID = counter;
+        counter++;
     }
     cv::Rect rect{};
-    int frames_unvisible{};
+    int ID{};
+    int frames_invisible{};
     bool overlap_found{};
     cv::Scalar color{};
     cv::Scalar getRandomColor();
@@ -29,6 +33,7 @@ double jaccardIndex(cv::Rect& first, cv::Rect& second);
 
 cv::Mat display(cv::Mat img);
 
-void printEvalutationToCSV(std::ostream& os, int framenumber, int objectID, int ul_x, int ul_y, int width, int height);
+void printObjToCSV(std::ostream& os, int objectID, int ul_x, int ul_y, int width, int height);
+void printFrameToCSV(std::ostream& os, int frameNumber, std::vector<unique_object>& unique_objects);
 
 #endif /* Utilities_hpp */

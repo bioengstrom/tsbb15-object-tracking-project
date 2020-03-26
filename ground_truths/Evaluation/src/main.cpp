@@ -133,7 +133,7 @@ void evaluate(Evaluation &ev, std::vector<Object> &gt, std::vector<Object> &foun
             //Find the object that has the largest intersection with the ground truth
             largest_found_intsect = std::max_element(found.begin(), found.end(), [&](Object& first, Object& second){
                 //return (gt[i].rect & first.rect).area() < (gt[i].rect & second.rect).area();
-                return jaccardIndex(gt[i], first.rect) < jaccardIndex(gt[i].rect, second.rect);
+                return jaccardIndex(gt[i].rect, first.rect) < jaccardIndex(gt[i].rect, second.rect);
             });
           
             //Calculate overlap - intersection / union

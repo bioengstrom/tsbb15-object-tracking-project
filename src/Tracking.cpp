@@ -60,14 +60,17 @@ void matchUniqueObjToDetections(std::vector<cv::Rect>& boundRect, std::vector<un
     }
     std::for_each(unique_objects.begin(), unique_objects.end(), [] (unique_object& obj) {
         if(!obj.overlap_found) {
-            obj.frames_unvisible++;
+            obj.frames_invisible++;
         }
         obj.overlap_found = false;
     });
     
-    std::remove_if(unique_objects.begin(),unique_objects.end(), [] (unique_object& obj) {
-        return obj.frames_unvisible > 10;
-    });
+    //Remove all unique objects that have been invisible for too long (frame threshold)
+    int invisibleFrameThreshold{10};
+    unique_objects.erase(std::remove_if(unique_objects.begin(),unique_objects.end(), [&invisibleFrameThreshold] (unique_object& obj) {
+        return obj.frames_invisible > invisibleFrameThreshold;
+        }), unique_objects.end());
+    
 
     //Add all detections with no overlap to the unique objects vector
     std::transform(boundRect.begin(),boundRect.end(),std::back_inserter(unique_objects), [&] (cv::Rect detection) {
