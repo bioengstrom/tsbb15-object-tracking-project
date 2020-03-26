@@ -57,10 +57,10 @@ struct SortStruct
 };
 
 
-void isForeground(double x, int row, int col, std::vector<cv::Vec3d*>& mix_comps, double w_init, cv::Mat& B, int K, double alpha = 0.002, double T = 0.8, double var_init = 10.0)  {
+int isForeground(double x, std::vector<cv::Vec3d*>& mix_comps,
+    double w_init, int K, double alpha = 0.002, double T = 0.8, double var_init = 10.0, double lambda = 2.5)  {
 
     std::vector<SortStruct> variables{};
-    const double lambda = 2.5;
     bool match{false};
     int m = 0;
     double totWeight = 0.0;
@@ -87,8 +87,8 @@ void isForeground(double x, int row, int col, std::vector<cv::Vec3d*>& mix_comps
         }
     }
     if (match == false) {
-        m = mix_comps.size()-1;
-        (*mix_comps[m])[WEIGHT] = alpha;
+        m = K-1;
+        (*mix_comps[m])[WEIGHT] = w_init;
         (*mix_comps[m])[MY] = x;
         (*mix_comps[m])[VAR] = var_init;
     }
@@ -119,7 +119,10 @@ void isForeground(double x, int row, int col, std::vector<cv::Vec3d*>& mix_comps
             variables.push_back({ quotient_vec[i], (*mix_comps[i])[WEIGHT], (*mix_comps[i])[MY], (*mix_comps[i])[VAR]});
         }
         std::sort(variables.begin(), variables.end(),
-            [](const SortStruct i, const SortStruct j) {return i.quotient < j.quotient; });
+            [](const SortStruct i, const SortStruct j)
+            {
+                return i.quotient > j.quotient; 
+            });
 
         for (int i = 0; i < mix_comps.size(); i++) {
             (*mix_comps[i])[WEIGHT] = variables[i].w;
@@ -129,38 +132,46 @@ void isForeground(double x, int row, int col, std::vector<cv::Vec3d*>& mix_comps
     }
 
     double sum = 0;
-    //int B = 0;
+    int B = 0;
                
     for (int k = 0; k < mix_comps.size(); k++) {
         sum += (*mix_comps[k])[WEIGHT];
         if (sum > T) {
-            B.at<uchar>(row, col) = k;
+            B = k;
             //B = k;
             break;
         }
     }
+
+    for (int k = 0; k < B; k++)
+    {
+        d[k] = sqrt((x - (*mix_comps[k])[MY]) * (x - (*mix_comps[k])[MY]));
+        if (d[k] < lambda * sqrt((*mix_comps[k])[VAR])) {
+            return 0;
+        }
+    }
+    return 255;
 }
 
 
-void mixtureBackgroundModelling(cv::Mat &frame, std::vector<cv::Mat>& variableMatrices, cv::Mat &background_model, double w_init, double var_init, int K, double alpha = 0.002, double T = 0.8) {
+void mixtureBackgroundModelling(cv::Mat &frame, std::vector<cv::Mat>& variableMatrices, cv::Mat &background_model,
+    double w_init, double var_init, int K, double alpha = 0.002, double T = 0.8, double lambda = 2.5) {
 
     cv::cvtColor(frame, frame, cv::COLOR_BGR2GRAY);
    // std::cout << frame.type() << std::endl;
     //frame.convertTo(frame, CV_64F);
-    int x = 0;
-    cv::Mat B(frame.rows, frame.cols, CV_8U);
+    //cv::Mat B(frame.rows, frame.cols, CV_8U);
     std::vector<double> d(K, 0.0); //mahalanobis
      
-    /*frame.forEach<double>([&](double& pixel, const int position[]) -> void {
-    std::vector<cv::Vec3d*> variables;
-                
-            for(int i = 0; i < variableMatrices.size(); i++) {
-                variables.push_back(&variableMatrices[i].at<cv::Vec3d>(position[0], position[1]));
-            }
-            pixel = isForeground(pixel, variables, w_init, K, alpha, T, var_init);
+    frame.forEach<uchar>([&](uchar& pixel, const int position[]) -> void {
+        std::vector<cv::Vec3d*> variables;
+        for (int i = 0; i < variableMatrices.size(); i++) {
+            variables.push_back(&variableMatrices[i].at<cv::Vec3d>(position[0], position[1]));
+        }
+        pixel = isForeground(pixel, variables, w_init, K, alpha, T, var_init, lambda);
+    });
 
-    });*/
-    std::vector<cv::Vec3d*> variables;
+    /*std::vector<cv::Vec3d*> variables;
     for (int row = 0; row < frame.rows; row++) {
         for (int col = 0; col < frame.cols; col++) {
             variables.clear();
@@ -168,24 +179,12 @@ void mixtureBackgroundModelling(cv::Mat &frame, std::vector<cv::Mat>& variableMa
             for (int i = 0; i < variableMatrices.size(); i++) {
                 variables.push_back(&variableMatrices[i].at<cv::Vec3d>(row, col));
             }
-            isForeground(x, row, col, variables, w_init, B, K, alpha, T, var_init);
-        }
-    }
+            background_model.at<uchar>(row,col) = isForeground(x, row, col, variables, w_init, K, alpha, T, var_init, lambda);
 
-    //Background segmentation for gaussian mixture model
-    for (int row = 0; row < frame.rows; row++) {
-        for (int col = 0; col < frame.cols; col++) {
-            for (int k = 0; k < B.at<uchar>(row, col); k++)
-            {
-                background_model.at<uchar>(row, col) = 0;
-                x = frame.at<uchar>(row, col);
-                d[k] = sqrt((x - (*variables[k])[MY]) * (x - (*variables[k])[MY]));
-                if (d[k] < 2.5 * sqrt((*variables[k])[VAR])) {
-                    background_model.at<uchar>(row, col) = 255;
-                }
-            }
+
+            
         }
-    }
+    }*/
 }
 
 
@@ -207,11 +206,12 @@ int main() {
     
     std::vector<cv::Mat> variableMatrices;
   
-    double var = 100.0;
-    double w = 0.002;
+    double var = 30.0; // 30
+    double w = 0.002; // 0.002
     double alpha = 0.002;
+    double lambda = 4.0; // golden number : 4.5
 
-    int K = 3;
+    int K = 5;
     for(int k = 0; k < K; k++) {
         //variableMatrices.push_back(cv::Mat(frame.rows, frame.cols, CV_64FC3, cv::Scalar(rand() % 255 + 1, var, w)));
         variableMatrices.push_back(cv::Mat(frame.rows, frame.cols, CV_64FC3, cv::Scalar(rand() % 255 + 1, var, w)));
@@ -220,16 +220,15 @@ int main() {
     
     variableMatrices[0].forEach<cv::Vec3d>([&](cv::Vec3d& pixel, const int position[]) -> void {
         pixel[0] = frame.at<double>(position[0], position[1]);
-
     });
     
     while (1) {
 
         cv::imshow("Original video", frame);
     
-        //(cv::Mat &frame, double w_init, double var_init, int K = 5, double alpha = 0.002, double T = 0.8)
-        mixtureBackgroundModelling(frame, variableMatrices, background_model, w, var, K, alpha, 0.8);
-        cv::imshow("Mixture model", background_model);
+        //(cv::Mat &frame, double w_init, double var_init, int K = 5, double alpha = 0.002, double T = 0.7 AMAZIN)
+        mixtureBackgroundModelling(frame, variableMatrices, background_model, w, var, K, alpha, 0.7, lambda);
+        cv::imshow("Mixture model", frame);
         
         //Break if press ESC
         char c = (char)cv::waitKey(25);
