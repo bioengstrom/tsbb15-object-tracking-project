@@ -37,6 +37,13 @@ int main() {
     cv::Mat frame;
     inputVideo >> frame;
 
+    // Nån trackinggrej från Tracking
+    cv::Mat tracking_frame = frame.clone();
+
+    /**************************************************************************
+                    GMM PARAMETER INITIALIZATION
+    ***************************************************************************/
+    double m = 0; // median filtering
     cv::Mat background_model = cv::Mat(frame.rows, frame.cols, CV_8U, cv::Scalar(0));
 
     std::vector<cv::Mat> variableMatrices;
@@ -44,20 +51,18 @@ int main() {
     double var = 30.0; // 30
     double w = 0.002; // 0.002
     double alpha = 0.002;
+    double T = 0.7;
     double lambda = 4.0; // golden number : 4.5
 
     int K = 5;
-    for(int k = 0; k < K; k++) {
+    for (int k = 0; k < K; k++) {
         //variableMatrices.push_back(cv::Mat(frame.rows, frame.cols, CV_64FC3, cv::Scalar(rand() % 255 + 1, var, w)));
         variableMatrices.push_back(cv::Mat(frame.rows, frame.cols, CV_64FC3, cv::Scalar(rand() % 255 + 1, var, w)));
     }
 
     variableMatrices[0].forEach<cv::Vec3d>([&](cv::Vec3d& pixel, const int position[]) -> void {
         pixel[0] = frame.at<double>(position[0], position[1]);
-    });
-
-    // Nån trackinggrej från Tracking
-    cv::Mat tracking_frame = frame.clone();
+        });
 
     /**************************************************************************
                     EVALUATION
@@ -134,11 +139,30 @@ int main() {
                    BACKGROUND MODELLING
         ***************************************************************************/
         // GMM från master
-        mixtureBackgroundModelling(frame, variableMatrices, background_model, w, var, K, alpha, 0.7, lambda);
+        cv::Mat bg_mask;
+        bg_mask = mixtureBackgroundModelling(frame, variableMatrices, background_model,
+            w, var, K, alpha, T, lambda, erosion_size, dilation_size);
+
+        //bg_mask = medianFiltering(frame, m);
+
+
+        cv::Mat ellips1 = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(2,2));
+        cv::Mat ellips2 = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5,5));
+
+        cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_OPEN, ellips1);
+        //cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_CLOSE, ellips2);
+
+        //cv::dilate(frame, frame, dil_element);
+
+        //cv::erode(frame, frame, er_element);
+
+        //cv::Mat kernel1 = cv::Mat::ones(erosion_size, erosion_size, CV_8U);
+        //cv::morphologyEx(frame, frame, cv::MORPH_OPEN, kernel1);
+        //cv::Mat kernel2 = cv::Mat::ones(dilation_size, dilation_size, CV_8U);
+        //cv::morphologyEx(frame, frame, cv::MORPH_CLOSE, kernel2);
 
         // Från tracking:
         //frame, background, ksize for median filter, threshold, erosion size, dilation size
-        cv::Mat bg_mask = medianBackgroundModelling(frame, background, 3, threshold, erosion_size, dilation_size);
         // Draw bonding rects
         cv::Mat drawing = cv::Mat::zeros( bg_mask.size(), CV_8UC3 );
         std::vector<cv::Rect> boundRect;
@@ -267,16 +291,16 @@ int main() {
         //Increment frame number
         frameNumber++;
 
-        // Från master (ta bort=)
+        // Från master (ta bort?)
         //Break if press ESC
         char c = (char)cv::waitKey(25);
         if (c == 27)
             break;
-
+        /*
         inputVideo >> frame;
         if (frame.empty()) {
             break;
-        }
+        }*/
     }
     cv::destroyAllWindows();
     myfile.close();
