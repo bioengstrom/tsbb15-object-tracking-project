@@ -122,15 +122,13 @@ int main() {
                    DETECT OVERLAP
         ***************************************************************************/
         matchUniqueObjToDetections(boundRect, unique_objects);
-        printFrameToCSV(myfile, frameNumber, unique_objects);
+        printFrameToCSV(myfile, frameNumber, false, unique_objects);
        
         // Draw unique object bonding rects
         for( int i = 0; i< unique_objects.size(); i++ )
         {
              rectangle( drawing, unique_objects[i].rect.tl(), unique_objects[i].rect.br(), unique_objects[i].color, 2, 8, 0 );
         }
-        
-        
         
         
         /**************************************************************************

@@ -34,6 +34,6 @@ double jaccardIndex(cv::Rect& first, cv::Rect& second);
 cv::Mat display(cv::Mat img);
 
 void printObjToCSV(std::ostream& os, int objectID, int ul_x, int ul_y, int width, int height);
-void printFrameToCSV(std::ostream& os, int frameNumber, std::vector<unique_object>& unique_objects);
+void printFrameToCSV(std::ostream& os, int frameNumber, bool printInvisible, std::vector<unique_object>& unique_objects);
 
 #endif /* Utilities_hpp */
