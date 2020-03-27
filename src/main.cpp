@@ -23,7 +23,9 @@ int main() {
                     OPEN VIDEO
     ***************************************************************************/
     //Name of video
-    std::string source{"Meet_Crowd"};
+
+    std::string source{"Walk1"};
+    //std::string source{"Meet_Crowd"};
     std::string mov_format{"mpg"};
 
     cv::VideoCapture inputVideo(source + "." + mov_format); // Open input
@@ -106,14 +108,11 @@ int main() {
     /**************************************************************************
             SLIDER FOR ADJUSTING THRESHOLD
     ***************************************************************************/
-    int threshold{85};
-    int threshold_slider_max{255};
-    int erosion_size{1};
-    int dilation_size{9};
+    int closing_size{2};
+    int opening_size{2};
     cv::namedWindow("Image", cv::WINDOW_NORMAL);
-    cv::createTrackbar("Threshold", "Image", &threshold, threshold_slider_max);
-    cv::createTrackbar("Erosion", "Image", &erosion_size, 10);
-    cv::createTrackbar("Dilation", "Image", &dilation_size, 10);
+    cv::createTrackbar("Closing size", "Image", &closing_size, 10);
+    cv::createTrackbar("Opening size", "Image", &opening_size, 10);
 
 
     while(1) {
@@ -123,10 +122,10 @@ int main() {
         ***************************************************************************/
         //std::string background_img{"Walk1000.jpg"};
         //cv::Mat background = cv::imread (background_img ,cv::IMREAD_UNCHANGED);
-        if(background.empty()) {
+        /*if(background.empty()) {
             std::cout << "Error! Could not find background image." << std::endl;
             return 1;
-        }
+        }*/
         /**************************************************************************
                         LOAD FRAMES
         ***************************************************************************/
@@ -142,25 +141,28 @@ int main() {
         // GMM från master
         cv::Mat bg_mask;
         bg_mask = mixtureBackgroundModelling(frame, variableMatrices, background_model,
-            w, var, K, alpha, T, lambda, erosion_size, dilation_size);
+            w, var, K, alpha, T, lambda, closing_size, opening_size);
 
         //bg_mask = medianFiltering(frame, m);
-        //bg_mask = medianFiltering(frame, m);
 
+        cv::Mat closing_small = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(2, 2));
+        cv::Mat opening_small = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(1, 1));
+        cv::Mat closing = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(closing_size, closing_size));
+        cv::Mat opening = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(opening_size,opening_size));
 
-        cv::Mat ellips1 = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(2,2));
-        cv::Mat ellips2 = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(1,1));
+        cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_OPEN, opening_small);
+        cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_CLOSE, closing_small);
 
-        cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_OPEN, ellips1);
-        //cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_CLOSE, ellips2);
+        cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_CLOSE, closing);
+        cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_OPEN, opening);
 
-        //cv::dilate(frame, frame, dil_element);
+        //cv::dilate(bg_mask, bg_mask, ellips2);
 
         //cv::erode(frame, frame, er_element);
 
-        //cv::Mat kernel1 = cv::Mat::ones(erosion_size, erosion_size, CV_8U);
+        //cv::Mat kernel1 = cv::Mat::ones(closing_size, closing_size, CV_8U);
         //cv::morphologyEx(frame, frame, cv::MORPH_OPEN, kernel1);
-        //cv::Mat kernel2 = cv::Mat::ones(dilation_size, dilation_size, CV_8U);
+        //cv::Mat kernel2 = cv::Mat::ones(opening_size, opening_size, CV_8U);
         //cv::morphologyEx(frame, frame, cv::MORPH_CLOSE, kernel2);
 
         // Från tracking:
@@ -283,7 +285,7 @@ int main() {
         cv::putText(frame, "Original Frame", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, black,2);
         cv::putText(tracking_frame, "Detections", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, black, 2);
         cv::putText(bg_mask, "Background model", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255),2);
-        cv::putText(bg_mask, "Threshold: " + std::to_string(threshold), cv::Point(10,60), cv::FONT_HERSHEY_SIMPLEX, 0.7, white,2);
+        //cv::putText(bg_mask, "Threshold: " + std::to_string(threshold), cv::Point(10,60), cv::FONT_HERSHEY_SIMPLEX, 0.7, white,2);
         //cv::putText(displayFeatures, "Harris feature points" , cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255),2);
         std::string uniqueObjCounter = unique_objects.size() > 0 ? std::to_string(unique_objects[0].counter) : "-";
         cv::putText(drawing, "Total unique objects: " + uniqueObjCounter, cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, white,2);
