@@ -24,7 +24,7 @@ int main() {
     ***************************************************************************/
     //Name of video
 
-    std::string source{"Meet_Crowd"};
+    std::string source{"Rest_InChair"};
     //std::string source{"Meet_Crowd"};
     std::string mov_format{"mpg"};
 
@@ -54,7 +54,7 @@ int main() {
     double var = 30.0; // 30
     double w = 0.002; // 0.002
     double alpha = 0.002;
-    double T = 0.7;
+    double T = 0.8;
     double lambda = 4.0; // golden number : 4.5
 
     int K = 5;
@@ -91,7 +91,8 @@ int main() {
 
     std::vector<unique_object> unique_objects;
     int invisible_frame_treshold{15};
-    int start_tracking_frame{75};
+    int start_tracking_frame{25};
+    bool print_invisible_obj{false};
 
     /**************************************************************************
             SLIDER FOR ADJUSTING THRESHOLD
@@ -148,7 +149,7 @@ int main() {
             matchUniqueObjToDetections(invisible_frame_treshold, boundRect, unique_objects);
             drawUniqueObjects(drawing, unique_objects);
         }
-        printFrameToCSV(myfile, frameNumber, true, unique_objects);
+        printFrameToCSV(myfile, frameNumber, print_invisible_obj, unique_objects);
         /**************************************************************************
                    DISPLAY IMAGES
         ***************************************************************************/
