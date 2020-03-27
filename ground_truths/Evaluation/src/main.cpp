@@ -59,6 +59,21 @@ std::istream& operator>> (std::istream &in, Object &obj)
     return in;
 }
 
+std::string validateInput(std::string& in) {
+    
+    std::stringstream temp(in);
+    std::stringstream out("");
+    std::istream_iterator<char> it_temp (temp);         // stdin iterator
+    std::istream_iterator<char> eos;              // end-of-stream iterator
+    std::ostream_iterator<char> it_out (out, "");         // stdin iterator
+    
+    std::copy_if(it_temp, eos, it_out, [](char letter){
+        return letter == ',' || isdigit(letter);
+    });
+    
+    return out.str();
+}
+
 std::ostream& operator<< (std::ostream &out, Object &obj)
 {
     out << obj.objectID << ",";
@@ -77,7 +92,6 @@ std::istream& operator>> (std::istream &in, std::vector<Object> &objects)
     Object temp{};
     while(in >> temp) {
         objects.push_back(temp);
-        //std::cout << temp << std::endl;
     }
     return in;
 }
@@ -126,20 +140,25 @@ void evaluate(Evaluation &ev, std::vector<Object> &gt, std::vector<Object> &foun
      A detection that has at least 20% overlap with the associated ground truth bounding box.
      Overlap aka Jaccard index: Intersection over union (IoU)
     */
-    std::vector<Object>::iterator largest_found_intsect;
     int i{};
+
     if(found.size() > 0) {
         while(gt.size() > i) {
+            std::vector<Object>::iterator largest_found_intsect;
             //Find the object that has the largest intersection with the ground truth
             largest_found_intsect = std::max_element(found.begin(), found.end(), [&](Object& first, Object& second){
                 //return (gt[i].rect & first.rect).area() < (gt[i].rect & second.rect).area();
                 return jaccardIndex(gt[i].rect, first.rect) < jaccardIndex(gt[i].rect, second.rect);
             });
+            
+            if(largest_found_intsect == found.end()) {
+                break;
+            }
           
             //Calculate overlap - intersection / union
-            /*double the_intersection = (gt[i].rect & largest_found_intsect->rect).area();
+            /* double the_intersection = (gt[i].rect & largest_found_intsect->rect).area();
             double the_union = gt[i].rect.area() + largest_found_intsect->rect.area() - the_intersection;
-            double overlap = the_intersection / the_union;*/
+            double overlap = the_intersection / the_union; */
             double overlap = jaccardIndex(gt[i].rect, largest_found_intsect->rect);
             
             //If overlap is larger than 20% we have a true positive! Remove the objects from
@@ -163,8 +182,9 @@ void evaluate(Evaluation &ev, std::vector<Object> &gt, std::vector<Object> &foun
                     }
                     ev.true_positives++;
                     ev.total_tp_overlap += overlap;
+                    
                     //Remove the found pair from the vectors
-                    found.erase(largest_found_intsect);
+                    largest_found_intsect = found.erase(largest_found_intsect);
                     gt.erase(std::next(gt.begin(), i));
                 }
             }
@@ -223,10 +243,14 @@ int main(int argc, const char * argv[]) {
     
     //Extract one line from each csv file to compare results
     while(std::getline(ground_truth, true_obj_str) && std::getline(tracking_results, found_obj_str)) {
-        // Store current line in a stream
-        std::stringstream ss_true(true_obj_str);
-        std::stringstream ss_found(found_obj_str);
         
+        std::string validInput = validateInput(true_obj_str);
+        std::string validInput2 = validateInput(found_obj_str);
+        
+        // Store current line in a stream
+        std::stringstream ss_true(validInput);
+        std::stringstream ss_found(validInput2);
+    
         //Read the objects into vectors for evaluation
         ss_true >> true_obj;
         ss_found >> found_obj;
