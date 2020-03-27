@@ -106,8 +106,8 @@ int main() {
     /**************************************************************************
             SLIDER FOR ADJUSTING THRESHOLD
     ***************************************************************************/
-    int closing_size{1};
-    int opening_size{1};
+    int closing_size{2};
+    int opening_size{2};
     cv::namedWindow("Image", cv::WINDOW_NORMAL);
     cv::createTrackbar("Closing size", "Image", &closing_size, 10);
     cv::createTrackbar("Opening size", "Image", &opening_size, 10);
@@ -138,21 +138,21 @@ int main() {
         ***************************************************************************/
         // GMM från master
         cv::Mat bg_mask;
-        //bg_mask = mixtureBackgroundModelling(frame, variableMatrices, background_model,
-        //    w, var, K, alpha, T, lambda, closing_size, opening_size);
+        bg_mask = mixtureBackgroundModelling(frame, variableMatrices, background_model,
+            w, var, K, alpha, T, lambda, closing_size, opening_size);
 
-        bg_mask = medianFiltering(frame, m);
+        //bg_mask = medianFiltering(frame, m);
 
         cv::Mat closing_small = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(2, 2));
         cv::Mat opening_small = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(1, 1));
         cv::Mat closing = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(closing_size, closing_size));
         cv::Mat opening = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(opening_size,opening_size));
 
-        /*cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_OPEN, opening_small);
+        cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_OPEN, opening_small);
         cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_CLOSE, closing_small);
 
         cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_CLOSE, closing);
-        cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_OPEN, opening);*/
+        cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_OPEN, opening);
 
         //cv::dilate(bg_mask, bg_mask, ellips2);
 
