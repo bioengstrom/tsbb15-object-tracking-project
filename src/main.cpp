@@ -24,6 +24,7 @@ int main() {
     ***************************************************************************/
     //Name of video
     std::string source{"Walk1"};
+    //std::string source{"Meet_Crowd"};
     std::string mov_format{"mpg"};
 
     cv::VideoCapture inputVideo(source + "." + mov_format); // Open input
@@ -105,12 +106,9 @@ int main() {
     /**************************************************************************
             SLIDER FOR ADJUSTING THRESHOLD
     ***************************************************************************/
-    int threshold{85};
-    int threshold_slider_max{255};
     int closing_size{1};
     int opening_size{1};
     cv::namedWindow("Image", cv::WINDOW_NORMAL);
-    cv::createTrackbar("Threshold", "Image", &threshold, threshold_slider_max);
     cv::createTrackbar("Closing size", "Image", &closing_size, 10);
     cv::createTrackbar("Opening size", "Image", &opening_size, 10);
 
@@ -140,21 +138,21 @@ int main() {
         ***************************************************************************/
         // GMM från master
         cv::Mat bg_mask;
-        bg_mask = mixtureBackgroundModelling(frame, variableMatrices, background_model,
-            w, var, K, alpha, T, lambda, closing_size, opening_size);
+        //bg_mask = mixtureBackgroundModelling(frame, variableMatrices, background_model,
+        //    w, var, K, alpha, T, lambda, closing_size, opening_size);
 
-        //bg_mask = medianFiltering(frame, m);
+        bg_mask = medianFiltering(frame, m);
 
         cv::Mat closing_small = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(2, 2));
         cv::Mat opening_small = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(1, 1));
         cv::Mat closing = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(closing_size, closing_size));
         cv::Mat opening = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(opening_size,opening_size));
 
-        cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_OPEN, opening_small);
+        /*cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_OPEN, opening_small);
         cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_CLOSE, closing_small);
 
         cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_CLOSE, closing);
-        cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_OPEN, opening);
+        cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_OPEN, opening);*/
 
         //cv::dilate(bg_mask, bg_mask, ellips2);
 
@@ -285,7 +283,7 @@ int main() {
         cv::putText(frame, "Original Frame", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, black,2);
         cv::putText(tracking_frame, "Bounding boxes", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, black, 2);
         cv::putText(bg_mask, "Background model", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255),2);
-        cv::putText(bg_mask, "Threshold: " + std::to_string(threshold), cv::Point(10,60), cv::FONT_HERSHEY_SIMPLEX, 0.7, white,2);
+        //cv::putText(bg_mask, "Threshold: " + std::to_string(threshold), cv::Point(10,60), cv::FONT_HERSHEY_SIMPLEX, 0.7, white,2);
         //cv::putText(displayFeatures, "Harris feature points" , cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255),2);
         std::string uniqueObjCounter = std::to_string(unique_objects.size() > 0 ? unique_objects[0].counter : 0);
         cv::putText(drawing, "Total dectected objects: " + uniqueObjCounter, cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, white,2);
