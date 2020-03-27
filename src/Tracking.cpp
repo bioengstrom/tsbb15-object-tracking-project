@@ -26,7 +26,7 @@ void findBoundingBoxes(cv::Mat& bg_mask, std::vector<cv::Rect>& boundRect, int m
     }
 }
 
-void matchUniqueObjToDetections(std::vector<cv::Rect>& boundRect, std::vector<unique_object>& unique_objects) {
+void matchUniqueObjToDetections(int invisibleFrameThreshold, std::vector<cv::Rect>& boundRect, std::vector<unique_object>& unique_objects) {
 
     std::vector<unique_object>::iterator largest_found_intsect;
     int i{};
@@ -78,7 +78,6 @@ void matchUniqueObjToDetections(std::vector<cv::Rect>& boundRect, std::vector<un
     });
 
     //Remove all unique objects that have been invisible for too long (frame threshold)
-    int invisibleFrameThreshold{15};
     unique_objects.erase(std::remove_if(unique_objects.begin(),unique_objects.end(), [&invisibleFrameThreshold] (unique_object& obj) {
         return obj.frames_invisible > invisibleFrameThreshold;
         }), unique_objects.end());

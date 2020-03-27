@@ -12,6 +12,6 @@
 #include "Utilities.hpp"
 
 void findBoundingBoxes(cv::Mat& bg_mask, std::vector<cv::Rect>& boundRect, int minRectArea) ;
-void matchUniqueObjToDetections(std::vector<cv::Rect>& boundRect, std::vector<unique_object>& unique_objects);
+void matchUniqueObjToDetections(int invisibleFrameThreshold, std::vector<cv::Rect>& boundRect, std::vector<unique_object>& unique_objects);
 
 #endif /* Tracking_hpp */
