@@ -216,12 +216,14 @@ int main(int argc, const char * argv[]) {
                     Open csv files
      ***********************************************************************/
     
-    if(argc != 3) {
+    if(argc != 4) {
         std::cerr << "Error! Please enter two csv filenames in the following order: \n 1) ground truth \n 2) results from the tracking program" << std::endl;
         return -1;
     }
     std::ifstream ground_truth{argv[1]};
     std::ifstream tracking_results{argv[2]};
+    std::string outFile{argv[3]};
+    
     if(!ground_truth) {
         std::cerr << "Error opening ground truth file" << std::endl;
         return -1;
@@ -266,7 +268,7 @@ int main(int argc, const char * argv[]) {
     
     //Print result to file
     std::ofstream result;
-    result.open ("result.txt");
+    result.open (outFile + ".txt");
     result << evaluation;
     result.close();
     

@@ -1,0 +1,8 @@
+True positives:               455
+False positives:              463
+False negatives:              921
+
+Precision:                    0.5
+Recall:                       0.33
+Average TP overlap:           0.28
+Identity switches:            7

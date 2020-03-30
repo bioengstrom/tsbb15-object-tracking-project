@@ -31,7 +31,7 @@ int main() {
     std::string mov_format{"mpg"};
 
     cv::VideoCapture inputVideo("img3/%06d.jpg"); //like a printf pattern, leading zeros are important !
-        
+
 
     //cv::VideoCapture inputVideo(source + "." + mov_format); // Open input
 
@@ -94,8 +94,9 @@ int main() {
     ************************************************************************/
 
     std::vector<unique_object> unique_objects;
-    int invisible_frame_treshold{50};
-    int start_tracking_frame{10};
+    int invisible_frame_treshold{15};
+    int start_tracking_frame{25};
+    bool print_invisible_obj{false};
 
     /**************************************************************************
             SLIDER FOR ADJUSTING THRESHOLD
@@ -105,7 +106,7 @@ int main() {
     cv::namedWindow("Image", cv::WINDOW_NORMAL);
     cv::createTrackbar("Closing size", "Image", &closing_size, 10);
     cv::createTrackbar("Opening size", "Image", &opening_size, 10);
-    
+
 
 
     while(1) {
@@ -147,7 +148,7 @@ int main() {
 
             //cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_CLOSE, closing);
             //cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_OPEN, opening);
-            
+
             pyrUp(bg_mask, bg_mask);
             pyrUp(bg_mask, bg_mask);
 
@@ -163,7 +164,7 @@ int main() {
             matchUniqueObjToDetections(invisible_frame_treshold, boundRect, unique_objects);
             drawUniqueObjects(drawing, unique_objects);
         }
-        printFrameToCSV(myfile, frameNumber, false, unique_objects);
+        printFrameToCSV(myfile, frameNumber, print_invisible_obj, unique_objects);
         /**************************************************************************
                    DISPLAY IMAGES
         ***************************************************************************/
