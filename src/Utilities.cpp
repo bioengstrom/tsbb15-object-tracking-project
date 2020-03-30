@@ -13,14 +13,12 @@ double jaccardIndex(const cv::Rect& first, const cv::Rect& second) {
     return the_intersection / the_union;
 }
 
-void printObjToCSV(std::ostream& os, int objectID, int ul_x, int ul_y, int width, int height) {
+void printObjToCSV(std::ostream& os, int objectID, int ul_x, int ul_y, int width, int height, int frameNumber) {
     
-    os << "," << objectID << "," << ul_x << "," << ul_y << "," << width << "," << height;
+    os << frameNumber << "," << objectID << "," << ul_x << "," << ul_y << "," << width << "," << height << std::endl;
 }
 
 void printFrameToCSV(std::ostream& os, int frameNumber, bool printInvisible, std::vector<unique_object>& unique_objects) {
-
-    os << frameNumber;
     
     //Write each unique object to csv file
     for( int i = 0; i< unique_objects.size(); i++ )
@@ -28,11 +26,12 @@ void printFrameToCSV(std::ostream& os, int frameNumber, bool printInvisible, std
         if(!printInvisible && unique_objects[i].frames_invisible > 0) {
             continue;
         }
-         printObjToCSV(os, unique_objects[i].ID, unique_objects[i].rect.x , unique_objects[i].rect.y, unique_objects[i].rect.width, unique_objects[i].rect.height);
+         printObjToCSV(os, unique_objects[i].ID, unique_objects[i].rect.x , unique_objects[i].rect.y, unique_objects[i].rect.width, unique_objects[i].rect.height, frameNumber);
         
     }
-    
-    os << std::endl;
+    if (unique_objects.size() == 0) {
+        os << frameNumber << std::endl;
+    }
 }
 
 //Initialize static members of unique object
@@ -51,7 +50,7 @@ cv::Rect unique_object::predRect() {
 void drawRectangles(cv::Mat& img, cv::Scalar color, std::vector<cv::Rect>& rects) {
     
     for (cv::Rect rect : rects) {
-        rectangle( img, rect.tl(), rect.br(), color, 2, 8, 0 );
+        rectangle( img, rect.tl(), rect.br(), color, 8, 8, 0 );
     }
 }
 
@@ -61,7 +60,7 @@ void drawUniqueObjects(cv::Mat& img, std::vector<unique_object>& unique_objects)
     for (unique_object obj : unique_objects)
     {
         if(obj.frames_invisible == 0) {
-            rectangle( img, obj.rect.tl(), obj.rect.br(), obj.color, 2, 8, 0 );
+            rectangle( img, obj.rect.tl(), obj.rect.br(), obj.color, 8, 8, 0 );
         }
     }
 }

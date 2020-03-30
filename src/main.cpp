@@ -24,11 +24,16 @@ int main() {
     ***************************************************************************/
     //Name of video
 
-    std::string source{"Meet_Crowd"};
+    //std::string source{"Rest_InChair"};
+    std::string source{"eval3"};
     //std::string source{"Meet_Crowd"};
+    //std::string source{"LeftBox"};
     std::string mov_format{"mpg"};
 
-    cv::VideoCapture inputVideo(source + "." + mov_format); // Open input
+    cv::VideoCapture inputVideo("img3/%06d.jpg"); //like a printf pattern, leading zeros are important !
+        
+
+    //cv::VideoCapture inputVideo(source + "." + mov_format); // Open input
 
     if (!inputVideo.isOpened())
     {
@@ -51,11 +56,11 @@ int main() {
 
     std::vector<cv::Mat> variableMatrices;
 
-    double var = 30.0; // 30
+    double var = 50.0; // 30
     double w = 0.002; // 0.002
     double alpha = 0.002;
-    double T = 0.7;
-    double lambda = 4.0; // golden number : 4.5
+    double T = 0.8;
+    double lambda = 3.0; // golden number : 4.5
 
     int K = 5;
     for (int k = 0; k < K; k++) {
@@ -64,7 +69,7 @@ int main() {
     }
 
     variableMatrices[0].forEach<cv::Vec3d>([&](cv::Vec3d& pixel, const int position[]) -> void {
-        pixel[0] = frame.at<double>(position[0], position[1]);
+        pixel[0] = frame.at<uchar>(position[0], position[1]);
         });
 
     /**************************************************************************
@@ -78,20 +83,19 @@ int main() {
       std::cout << "Could not write to file!" << std::endl;
       myfile.close();
     }
-    int frameNumber{0};
+    int frameNumber{1};
 
 
     //Random generator for generating random colors
 
-    int minRectArea = 150;
+    int minRectArea = 1920*1080 * 0.25 * 0.01;
     /**********************************************************************
               MAINTAIN OBJECT IDENTITY
-
     ************************************************************************/
 
     std::vector<unique_object> unique_objects;
-    int invisible_frame_treshold{15};
-    int start_tracking_frame{75};
+    int invisible_frame_treshold{50};
+    int start_tracking_frame{10};
 
     /**************************************************************************
             SLIDER FOR ADJUSTING THRESHOLD
@@ -111,31 +115,42 @@ int main() {
         ***************************************************************************/
 
         inputVideo >> frame;
+        cv::Size origSize(frame.rows, frame.cols);
         if(frame.empty()) {
             break;
         }
+
         cv::Mat tracking_frame = frame.clone();
+        cv::Mat origFrame = frame.clone();
+
         /**************************************************************************
                    BACKGROUND MODELLING
         ***************************************************************************/
         // GMM från master
+        pyrDown(frame, frame);
+        pyrDown(frame, frame);
+        //pyrDown(frame, frame);
         cv::Mat bg_mask = mixtureBackgroundModelling(frame, variableMatrices, background_model,
             w, var, K, alpha, T, lambda, closing_size, opening_size);
-        cv::Mat drawing = cv::Mat::zeros( bg_mask.size(), CV_8UC3 );
+
+        cv::Mat drawing = cv::Mat::zeros( tracking_frame.size(), CV_8UC3 );
 
         //Start Gaussian mixture model after a certain frame
         if ( frameNumber > start_tracking_frame) {
-            cv::Mat closing_small = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(2, 2));
-            cv::Mat opening_small = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(1, 1));
-            cv::Mat closing = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(closing_size, closing_size));
+            cv::Mat closing_small = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(2, 7));
+            cv::Mat opening_small = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(3, 3));
+            cv::Mat closing = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(2, closing_size));
             cv::Mat opening = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(opening_size,opening_size));
 
             cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_OPEN, opening_small);
             cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_CLOSE, closing_small);
 
-            cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_CLOSE, closing);
-            cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_OPEN, opening);
+            //cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_CLOSE, closing);
+            //cv::morphologyEx(bg_mask, bg_mask, cv::MORPH_OPEN, opening);
             
+            pyrUp(bg_mask, bg_mask);
+            pyrUp(bg_mask, bg_mask);
+
             std::vector<cv::Rect> boundRect;
 
             findBoundingBoxes(bg_mask, boundRect, minRectArea);
@@ -148,7 +163,7 @@ int main() {
             matchUniqueObjToDetections(invisible_frame_treshold, boundRect, unique_objects);
             drawUniqueObjects(drawing, unique_objects);
         }
-        printFrameToCSV(myfile, frameNumber, true, unique_objects);
+        printFrameToCSV(myfile, frameNumber, false, unique_objects);
         /**************************************************************************
                    DISPLAY IMAGES
         ***************************************************************************/
@@ -156,8 +171,8 @@ int main() {
         //(Mat& img, const string& text, Point org, int fontFace, double fontScale, Scalar color, int thickness=1, int lineType=8, bool bottomLeftOrigin=false )
         cv::Scalar black = cv::Scalar(0, 0, 0);
         cv::Scalar white = cv::Scalar(255, 255, 255);
-
-        cv::putText(frame, "Original Frame", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, black,2);
+        pyrDown(tracking_frame, tracking_frame);
+        cv::putText(origFrame, "Original Frame", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, black,2);
         cv::putText(tracking_frame, "Detections", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, black, 2);
         cv::putText(bg_mask, "Background model", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255),2);
         //cv::putText(bg_mask, "Threshold: " + std::to_string(threshold), cv::Point(10,60), cv::FONT_HERSHEY_SIMPLEX, 0.7, white,2);
@@ -166,7 +181,7 @@ int main() {
         cv::putText(drawing, "Total unique objects: " + uniqueObjCounter, cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, white,2);
         cv::putText(drawing, "Current unique objects: " + std::to_string(unique_objects.size()), cv::Point(10,60), cv::FONT_HERSHEY_SIMPLEX, 0.7, white,2);
         //cv::putText(harris, "Harris feature points" , cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 0, 0),2);
-        ShowFourImages("Image", frame, display(bg_mask), tracking_frame, drawing);
+        ShowFourImages("Image", origFrame, display(bg_mask), tracking_frame, drawing);
         //Increment frame number
         frameNumber++;
 
