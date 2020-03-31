@@ -45,6 +45,8 @@ struct Evaluation {
 std::istream& operator>> (std::istream &in, Object &obj)
 {
     char comma{};
+    int frameNr{};
+    in >> frameNr;
     in >> comma;
     in >> obj.objectID;
     in >> comma;
@@ -84,10 +86,6 @@ std::ostream& operator<< (std::ostream &out, Object &obj)
 //Gets one line from a csv file and inserts the objects into the vector
 std::istream& operator>> (std::istream &in, std::vector<Object> &objects)
 {
-    //Remove beginning of line
-    int frame_nr{};
-    in >> frame_nr;
-    
     //Read objects into vector
     Object temp{};
     while(in >> temp) {
@@ -241,21 +239,52 @@ int main(int argc, const char * argv[]) {
     std::vector<Object> found_obj{};
     std::string true_obj_str{};
     std::string found_obj_str{};
+    std::string tmp{};
     Evaluation evaluation{};
     
-    //Extract one line from each csv file to compare results
-    while(std::getline(ground_truth, true_obj_str) && std::getline(tracking_results, found_obj_str)) {
-        
-        std::string validInput = validateInput(true_obj_str);
-        std::string validInput2 = validateInput(found_obj_str);
-        
-        // Store current line in a stream
-        std::stringstream ss_true(validInput);
-        std::stringstream ss_found(validInput2);
+    // Store current line in a stream
+    std::stringstream ss_true{};
+    std::stringstream ss_found{};
     
+    int frameNr{1};
+    int tempFrNr{};
+    
+    while(ground_truth || tracking_results) {
+        while(1) {
+            //Read one frame into detection obj vector
+            std::getline(ground_truth, tmp);
+            std::cout << tmp << std::endl;
+            std::string validInput = validateInput(tmp);
+            ss_true.str(validInput);
+            ss_true >> tempFrNr;
+            if(tempFrNr == frameNr) {
+                true_obj_str.append(tmp);
+            }
+            else {
+                break;
+            }
+        }
+        
+        do {
+            //Read one frame into detection obj vector
+            std::getline(tracking_results, tmp);
+            std::cout << tmp << std::endl;
+            std::string validInput = validateInput(tmp);
+            ss_found.str(validInput);
+            ss_found >> tempFrNr;
+            found_obj_str.append(tmp);
+            std::cout << "hj" << std::endl;
+        } while(tempFrNr == frameNr);
+        
+        ss_true.str(true_obj_str);
+        ss_found.str(found_obj_str);
         //Read the objects into vectors for evaluation
         ss_true >> true_obj;
         ss_found >> found_obj;
+        
+        if(true_obj.size() == 0 && found_obj.size() == 0) {
+            break;
+        }
         
         //Compare the vectors
         evaluate(evaluation, true_obj, found_obj);
@@ -263,7 +292,9 @@ int main(int argc, const char * argv[]) {
         //Clear vectors
         true_obj.clear();
         found_obj.clear();
+    
     }
+            
     std::cout << evaluation;
     
     //Print result to file
